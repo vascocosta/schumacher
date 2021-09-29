@@ -356,11 +356,15 @@ func findNext2(category string, session string) (eventName string, err error) {
 	}
 	for _, event := range events {
 		if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
-			t, _ := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+			t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+				if err != nil {
+					log.Println("findNext: Error parsing time.")
+					return "", err
+				}
 			delta := time.Until(t)
 			if delta >= 0 {
 				eventName = event[1]
-				return
+				return eventName, nil
 			}
 		}
 	}
@@ -386,11 +390,16 @@ func findNext(category string, session string) (eventName string, err error) {
 			return "", err
 		default:
 			if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
-				t, _ := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+				t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+				if err != nil {
+					err = errors.New("Problem parsing time.")
+					log.Println("findNext: Error parsing time.")
+					return "", err
+				}
 				delta := time.Until(t)
 				if delta >= 0 {
 					eventName = event[1]
-					return eventName, err
+					return eventName, nil
 				}
 			}
 		}
