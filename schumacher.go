@@ -307,27 +307,11 @@ func parseCommand(message string, nick string, channel string) (command Command,
 // It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
 func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
-	//L:
-	// Clear the channel before starting the quiz.
-	// Now that the main goroutine only writes to the "c" go channel if quiz == true, this shouldn't be needed.
-	//for {
-	//	select {
-	//	case <-c:
-	//	default:
-	//		break L
-	//	}
-	//}
 	quizOn = true
-	f, err := os.Open(quizFile)
-	defer f.Close()
+	questions, err := csvToSlice(quizFile)
 	if err != nil {
-		log.Println("cmdQuiz: Cannot open file " + quizFile)
-		return
-	}
-	r := csv.NewReader(f)
-	questions, err := r.ReadAll()
-	if err != nil {
-		log.Println("cmdQuiz: Problem reading questions")
+		log.Println("cmdQuiz:", err)
+		irccon.Privmsg(channel, "Problem reading questions.")
 		return
 	}
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
