@@ -45,18 +45,34 @@ func contains(s []string, str string) bool {
 	return false
 }
 
-// Small utility function that parses a CSV file and returns the data as slice of slice of strings.
-func csvToSlice(path string) (data [][]string, err error) {
+// Small utility function that reads a CSV file and returns the data as slice of slice of strings.
+func readCSV(path string) (data [][]string, err error) {
 	f, err := os.Open(path)
 	defer f.Close()
 	if err != nil {
-		err = errors.New("Error opening CSV file.")
+		err = errors.New("Error opening CSV file: " + path + ".")
 		return
 	}
 	r := csv.NewReader(f)
 	data, err = r.ReadAll()
 	if err != nil {
-		err = errors.New("Error reading data.")
+		err = errors.New("Error reading data from: " + path + ".")
+		return
+	}
+	return
+}
+
+func writeCSV(path string, data [][]string) (err error) {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	defer f.Close()
+	if err != nil {
+		err = errors.New("Error opening CSV file: " + path + ".")
+		return
+	}
+	w := csv.NewWriter(f)
+	err = w.WriteAll(data)
+	if err != nil {
+		err = errors.New("Error writing data to: " + path + ".")
 		return
 	}
 	return
@@ -64,17 +80,17 @@ func csvToSlice(path string) (data [][]string, err error) {
 
 //The findNext function receives a category and session and returns the chronologically next event matching that criteria.
 func findNext(category string, session string) (eventName string, err error) {
-	events, err := csvToSlice(eventsFile)
+	events, err := readCSV(eventsFile)
 	if err != nil {
 		return
 	}
 	for _, event := range events {
 		if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
 			t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
-				if err != nil {
-					log.Println("findNext: Error parsing time.")
-					return "", err
-				}
+			if err != nil {
+				err = errors.New("Error parsing time.")
+				return eventName, err
+			}
 			delta := time.Until(t)
 			if delta >= 0 {
 				eventName = event[1]
@@ -221,17 +237,10 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		return
 	}
 	if len(bet) == 0 {
-		f, err := os.Open(betsFile)
-		defer f.Close()
+		bets, err = readCSV(betsFile)
 		if err != nil {
-			log.Println("cmdBet: Error opening file " + betsFile)
-			return
-		}
-		r := csv.NewReader(f)
-		bets, err = r.ReadAll()
-		f.Close()
-		if err != nil {
-			log.Println("cmdBet: Error reading bets.")
+			irccon.Privmsg(channel, "Error getting bets.")
+			log.Println("cmdBet:", err)
 			return
 		}
 		for i := len(bets) - 1; i >= 0; i-- {
@@ -250,16 +259,10 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		irccon.Privmsg(channel, "The bet must contain 3 drivers.")
 		return
 	}
-	f, err := os.Open(driversFile)
-	defer f.Close()
+	drivers, err := readCSV(driversFile)
 	if err != nil {
-		log.Println("cmdBet: Error opening file " + driversFile)
-	}
-	r := csv.NewReader(f)
-	drivers, err := r.ReadAll()
-	f.Close()
-	if err != nil {
-		log.Println("cmdBet: Error reading drivers")
+		irccon.Privmsg(channel, "Error getting drivers.")
+		log.Println("cmdBet:", err)
 		return
 	}
 	first := strings.ToLower(bet[0])
@@ -275,17 +278,10 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		irccon.Privmsg(channel, "Invalid drivers.")
 		return
 	}
-	f, err = os.Open(betsFile)
-	defer f.Close()
+	bets, err = readCSV(betsFile)
 	if err != nil {
-		log.Println("cmdBet: Error opening file " + betsFile)
-		return
-	}
-	r = csv.NewReader(f)
-	bets, err = r.ReadAll()
-	f.Close()
-	if err != nil {
-		log.Println("cmdBet: Error reading bets.")
+		irccon.Privmsg(channel, "Error getting bets.")
+		log.Println("cmdBet:", err)
 		return
 	}
 	for i := 0; i < len(bets); i++ {
@@ -298,16 +294,10 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	if !update {
 		bets = append(bets, []string{strings.ToLower(race), strings.ToLower(nick), first, second, third, "0"})
 	}
-	f, err = os.OpenFile(betsFile, os.O_RDWR|os.O_CREATE, 0644)
-	defer f.Close()
+	err = writeCSV(betsFile, bets)
 	if err != nil {
-		log.Println("cmdBet: Error opening file " + betsFile)
-		return
-	}
-	w := csv.NewWriter(f)
-	err = w.WriteAll(bets)
-	if err != nil {
-		log.Println("cmdBet: Error writing bets.", err)
+		irccon.Privmsg(channel, "Error updating bet.")
+		log.Println("cmdBet:", err)
 		return
 	}
 	irccon.Privmsg(channel, "Your bet for the "+race+" was successfully updated.")
@@ -333,10 +323,10 @@ func parseCommand(message string, nick string, channel string) (command Command,
 // It then waits for answers to classify as correct or wrong or times out after a while.
 func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 	quiz = true
-	questions, err := csvToSlice(quizFile)
+	questions, err := readCSV(quizFile)
 	if err != nil {
-		log.Println("cmdQuiz:", err)
 		irccon.Privmsg(channel, "Error reading questions.")
+		log.Println("cmdQuiz:", err)
 		return
 	}
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
@@ -390,11 +380,7 @@ func main() {
 			case "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
 			case "bet22":
-				// t1 := time.Now()
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
-				// t2 := time.Now()
-				// duration := t2.Sub(t1)
-				// log.Println(duration.Microseconds())
 			case "quiz":
 				if !quiz {
 					go cmdQuiz(irccon, command.Channel, c)
