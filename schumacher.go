@@ -62,6 +62,30 @@ func csvToSlice(path string) (data [][]string, err error) {
 	return
 }
 
+//The findNext function receives a category and session and returns the chronologically next event matching that criteria.
+func findNext(category string, session string) (eventName string, err error) {
+	events, err := csvToSlice(eventsFile)
+	if err != nil {
+		return
+	}
+	for _, event := range events {
+		if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
+			t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+				if err != nil {
+					log.Println("findNext: Error parsing time.")
+					return "", err
+				}
+			delta := time.Until(t)
+			if delta >= 0 {
+				eventName = event[1]
+				return eventName, nil
+			}
+		}
+	}
+	err = errors.New("No event found.")
+	return
+}
+
 // The announce function runs in the background as a goroutine polling for new events.
 func announce(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
@@ -340,29 +364,6 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 	}
 	quiz = false
 	irccon.Privmsg(channel, "The quiz is over!")
-}
-
-func findNext(category string, session string) (eventName string, err error) {
-	events, err := csvToSlice(eventsFile)
-	if err != nil {
-		return
-	}
-	for _, event := range events {
-		if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
-			t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
-				if err != nil {
-					log.Println("findNext: Error parsing time.")
-					return "", err
-				}
-			delta := time.Until(t)
-			if delta >= 0 {
-				eventName = event[1]
-				return eventName, nil
-			}
-		}
-	}
-	err = errors.New("No event found.")
-	return
 }
 
 func main() {
