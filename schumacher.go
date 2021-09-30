@@ -189,7 +189,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	var correct int
 	var bets [][]string
 	var update bool
-	race, err := findNext2("formula 1", "race")
+	race, err := findNext("formula 1", "race")
 	if err != nil {
 		irccon.Privmsg(channel, "Error finding next race.")
 		log.Println("cmdBet:", err)
@@ -357,7 +357,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 	irccon.Privmsg(channel, "The quiz is over!")
 }
 
-func findNext2(category string, session string) (eventName string, err error) {
+func findNext(category string, session string) (eventName string, err error) {
 	events, err := csvToSlice(eventsFile)
 	if err != nil {
 		return
@@ -378,40 +378,6 @@ func findNext2(category string, session string) (eventName string, err error) {
 	}
 	err = errors.New("No event found.")
 	return
-}
-
-func findNext(category string, session string) (eventName string, err error) {
-	f, err := os.Open(eventsFile)
-	defer f.Close()
-	if err != nil {
-		log.Println("findNext: Cannot open file " + eventsFile)
-	}
-	r := csv.NewReader(f)
-	for {
-		event, err := r.Read()
-		switch {
-		case err != nil && event != nil:
-			err = errors.New("Problem reading events.")
-			return "", err
-		case err != nil && event == nil:
-			err = errors.New("No event found.")
-			return "", err
-		default:
-			if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
-				t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
-				if err != nil {
-					err = errors.New("Problem parsing time.")
-					log.Println("findNext: Error parsing time.")
-					return "", err
-				}
-				delta := time.Until(t)
-				if delta >= 0 {
-					eventName = event[1]
-					return eventName, nil
-				}
-			}
-		}
-	}
 }
 
 func main() {
