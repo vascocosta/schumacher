@@ -25,7 +25,7 @@ const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full pa
 const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
 const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
 
-var quizOn bool
+var quiz bool
 
 // Type that represents an IRC command issued by the user.
 type Command struct {
@@ -45,17 +45,18 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// Small utility function that parses a CSV file and returns the data as slice of slice of strings.
 func csvToSlice(path string) (data [][]string, err error) {
 	f, err := os.Open(path)
 	defer f.Close()
 	if err != nil {
-		err = errors.New("Problem opening CSV file.")
+		err = errors.New("Error opening CSV file.")
 		return
 	}
 	r := csv.NewReader(f)
 	data, err = r.ReadAll()
 	if err != nil {
-		err = errors.New("Problem reading data.")
+		err = errors.New("Error reading data.")
 		return
 	}
 	return
@@ -199,14 +200,14 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		f, err := os.Open(betsFile)
 		defer f.Close()
 		if err != nil {
-			log.Println("cmdBet: Cannot open file " + betsFile)
+			log.Println("cmdBet: Error opening file " + betsFile)
 			return
 		}
 		r := csv.NewReader(f)
 		bets, err = r.ReadAll()
 		f.Close()
 		if err != nil {
-			log.Println("cmdBet: Problem reading bets.")
+			log.Println("cmdBet: Error reading bets.")
 			return
 		}
 		for i := len(bets) - 1; i >= 0; i-- {
@@ -228,13 +229,13 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	f, err := os.Open(driversFile)
 	defer f.Close()
 	if err != nil {
-		log.Println("cmdBet: Cannot open file " + driversFile)
+		log.Println("cmdBet: Error opening file " + driversFile)
 	}
 	r := csv.NewReader(f)
 	drivers, err := r.ReadAll()
 	f.Close()
 	if err != nil {
-		log.Println("cmdBet: Problem reading drivers")
+		log.Println("cmdBet: Error reading drivers")
 		return
 	}
 	first := strings.ToLower(bet[0])
@@ -253,14 +254,14 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	f, err = os.Open(betsFile)
 	defer f.Close()
 	if err != nil {
-		log.Println("cmdBet: Cannot open file " + betsFile)
+		log.Println("cmdBet: Error opening file " + betsFile)
 		return
 	}
 	r = csv.NewReader(f)
 	bets, err = r.ReadAll()
 	f.Close()
 	if err != nil {
-		log.Println("cmdBet: Problem reading bets.")
+		log.Println("cmdBet: Error reading bets.")
 		return
 	}
 	for i := 0; i < len(bets); i++ {
@@ -276,13 +277,13 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	f, err = os.OpenFile(betsFile, os.O_RDWR|os.O_CREATE, 0644)
 	defer f.Close()
 	if err != nil {
-		log.Println("cmdBet: Cannot open file " + betsFile)
+		log.Println("cmdBet: Error opening file " + betsFile)
 		return
 	}
 	w := csv.NewWriter(f)
 	err = w.WriteAll(bets)
 	if err != nil {
-		log.Println("cmdBet: Problem writing bets.", err)
+		log.Println("cmdBet: Error writing bets.", err)
 		return
 	}
 	irccon.Privmsg(channel, "Your bet for the "+race+" was successfully updated.")
@@ -307,11 +308,11 @@ func parseCommand(message string, nick string, channel string) (command Command,
 // It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
 func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
-	quizOn = true
+	quiz = true
 	questions, err := csvToSlice(quizFile)
 	if err != nil {
 		log.Println("cmdQuiz:", err)
-		irccon.Privmsg(channel, "Problem reading questions.")
+		irccon.Privmsg(channel, "Error reading questions.")
 		return
 	}
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
@@ -337,7 +338,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 			irccon.Privmsg(channel, "Time's up... The correct answer was: "+questions[i][1])
 		}
 	}
-	quizOn = false
+	quiz = false
 	irccon.Privmsg(channel, "The quiz is over!")
 }
 
@@ -380,7 +381,7 @@ func main() {
 		m := event.Message()
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
-			if quizOn {
+			if quiz {
 				c <- m
 			}
 		} else {
@@ -394,7 +395,7 @@ func main() {
 				// duration := t2.Sub(t1)
 				// log.Println(duration.Microseconds())
 			case "quiz":
-				if !quizOn {
+				if !quiz {
 					go cmdQuiz(irccon, command.Channel, c)
 				}
 			}
