@@ -45,6 +45,22 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+func csvToSlice(path string) (data [][]string, err error) {
+	f, err := os.Open(path)
+	defer f.Close()
+	if err != nil {
+		err = errors.New("Problem opening CSV file.")
+		return
+	}
+	r := csv.NewReader(f)
+	data, err = r.ReadAll()
+	if err != nil {
+		err = errors.New("Problem reading data.")
+		return
+	}
+	return
+}
+
 // The announce function runs in the background as a goroutine polling for new events.
 func announce(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
@@ -173,7 +189,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	var correct int
 	var bets [][]string
 	var update bool
-	race, err := findNext("formula 1", "race")
+	race, err := findNext2("formula 1", "race")
 	if err != nil {
 		irccon.Privmsg(channel, "Error finding next race.")
 		log.Println("cmdBet:", err)
@@ -342,16 +358,8 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 }
 
 func findNext2(category string, session string) (eventName string, err error) {
-	f, err := os.Open(eventsFile)
-	defer f.Close()
+	events, err := csvToSlice(eventsFile)
 	if err != nil {
-		log.Println("findNext: Cannot open file " + eventsFile)
-	}
-	r := csv.NewReader(f)
-	events, err := r.ReadAll()
-	f.Close()
-	if err != nil {
-		log.Println("findNext: Problem reading events.", err)
 		return
 	}
 	for _, event := range events {
