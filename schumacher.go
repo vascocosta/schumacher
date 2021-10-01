@@ -321,8 +321,12 @@ func parseCommand(message string, nick string, channel string) (command Command,
 // The quiz command receives an irc connection pointer, an irc channel and a string channel.
 // It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
-func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
+func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number string) {
 	quiz = true
+	n, err := strconv.Atoi(number)
+	if err != nil || (n <= 0 || n > 10) {
+		n = 5
+	}
 	questions, err := readCSV(quizFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error reading questions.")
@@ -336,8 +340,8 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string) {
 	// After showing the question on irc, it waits for an answer on the "c" go channel and classifies it.
 	// The answer is sent to the "c" go channel on the main goroutine, inside the "PRIVMSG" callback.
 	// Eventually if no answer is sent, it times out after 15 seconds.
-	for i := 0; i < 5; i++ {
-		irccon.Privmsg(channel, strconv.Itoa(i+1)+"/5 - "+questions[i][0])
+	for i := 0; i < n; i++ {
+		irccon.Privmsg(channel, strconv.Itoa(i+1)+"/"+strconv.Itoa(n)+" - "+questions[i][0])
 		select {
 		case answer := <-c:
 			if strings.ToLower(answer) == strings.ToLower(questions[i][1]) {
@@ -383,7 +387,7 @@ func main() {
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
 			case "quiz":
 				if !quiz {
-					go cmdQuiz(irccon, command.Channel, c)
+					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
 			}
 		}
