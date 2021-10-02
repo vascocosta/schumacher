@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-const nick = "Schumacher2"                                            // Nick to be used by the bot.
-const channels = "#motorsport"                                        // Names of the channels to join.
+const nick = "Schumacher"                                             // Nick to be used by the bot.
+const channels = "#formula1"                                          // Names of the channels to join.
 const server = "irc.quakenet.org:6667"                                // Hostname of the server to connect to.
 const prefix = "!"                                                    // Prefix which is used by the user to issue commands.
 const dbPath = "/home/gluon/var/irc/bots/Senna/data/Motorsport.db"    // Full path to the database.
@@ -131,6 +131,44 @@ func findNext(category string, session string) (event []string, err error) {
 
 // The announce function runs in the background as a goroutine polling for new events.
 func announce(irccon *irc.Connection, channel string) {
+	var announced [5]string // Small buffer to hold recently announced events.
+	var index = 0           // Index used to reference the buffer above.
+	for !irccon.Connected() {
+		log.Println("announce: Waiting for an IRC connection.")
+		time.Sleep(10 * time.Second)
+	}
+	// Loop that runs every minute opening the database and querying any event that starts within 5 minutes.
+	for {
+		time.Sleep(60 * time.Second)
+		event, err := findNext("any", "any")
+		if err != nil {
+			log.Println("announce:", err)
+			continue
+		}
+		t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+		if err != nil {
+			log.Println("announce: Error parsing time.")
+			continue
+		}
+		delta := time.Until(t)
+		if delta.Minutes() > 5 {
+			continue
+		}
+		// If the index becomes greather than what the buffer can hold, we reset it.
+		if index > 4 {
+			index = 0
+		} else {
+			if !contains(announced[0:4], event[0]+" "+event[1]+" "+event[2]) {
+				irccon.Privmsg(channel, "\x034Starting in 5 minutes:\x03 "+event[0]+" "+event[1]+" "+event[2])
+				announced[index] = event[0] + " " + event[1] + " " + event[2]
+				index++
+			}
+		}
+	}
+}
+
+// The announce function runs in the background as a goroutine polling for new events.
+func announce21(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
 	var index = 0           // Index used to reference the buffer above.
 	var dtstart string      // Event start time.
