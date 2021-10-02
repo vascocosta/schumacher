@@ -137,7 +137,7 @@ func announce(irccon *irc.Connection, channel string) {
 		log.Println("announce: Waiting for an IRC connection.")
 		time.Sleep(10 * time.Second)
 	}
-	// Loop that runs every minute opening the database and querying any event that starts within 5 minutes.
+	// Loop that runs every minute opening the events CSV file and querying any event that starts within 5 minutes.
 	for {
 		time.Sleep(60 * time.Second)
 		event, err := findNext("any", "any")
