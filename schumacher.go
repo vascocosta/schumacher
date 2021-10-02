@@ -23,6 +23,7 @@ const dbPath = "/home/gluon/var/irc/bots/Senna/data/Motorsport.db"    // Full pa
 const betsFile = "/home/gluon/var/irc/bots/Schumacher/bets.csv"       // Full path to the bets file.
 const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
 const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
+const usersFile = "/home/gluon/var/irc/bots/Schumacher/users.csv"     // Full path to the users file.
 const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
 
 var quiz bool
@@ -79,23 +80,49 @@ func writeCSV(path string, data [][]string) (err error) {
 }
 
 //The findNext function receives a category and session and returns the chronologically next event matching that criteria.
-func findNext(category string, session string) (eventName string, err error) {
+func findNext(category string, session string) (event []string, err error) {
+	var t time.Time
 	events, err := readCSV(eventsFile)
 	if err != nil {
 		return
 	}
-	for _, event := range events {
-		if strings.ToLower(event[0]) == strings.ToLower(category) && strings.ToLower(event[2]) == strings.ToLower(session) {
-			t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+	for _, e := range events {
+		switch {
+		case strings.ToLower(category) == "any" && strings.ToLower(session) == "any":
+			t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
 			if err != nil {
 				err = errors.New("Error parsing time.")
-				return eventName, err
+				return event, err
 			}
-			delta := time.Until(t)
-			if delta >= 0 {
-				eventName = event[1]
-				return eventName, nil
+		case strings.ToLower(category) != "any" && strings.ToLower(session) == "any":
+			if strings.ToLower(e[0]) == strings.ToLower(category) {
+				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				if err != nil {
+					err = errors.New("Error parsing time.")
+					return event, err
+				}
 			}
+		case strings.ToLower(category) == "any" && strings.ToLower(session) != "any":
+			if strings.ToLower(e[2]) == strings.ToLower(session) {
+				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				if err != nil {
+					err = errors.New("Error parsing time.")
+					return event, err
+				}
+			}
+		default:
+			if strings.ToLower(e[0]) == strings.ToLower(category) && strings.ToLower(e[2]) == strings.ToLower(session) {
+				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				if err != nil {
+					err = errors.New("Error parsing time.")
+					return event, err
+				}
+			}
+		}
+		delta := time.Until(t)
+		if delta >= 0 {
+			event = []string{e[0], e[1], e[2], e[3]}
+			return event, nil
 		}
 	}
 	err = errors.New("No event found.")
@@ -146,57 +173,52 @@ func announce(irccon *irc.Connection, channel string) {
 }
 
 // The next command receives an irc connection pointer, a channel, a nick and an optional search string.
-// It then queries the database and returns which event(s) are happening next, showing them on the channel.
+// It then queries the events CSV file and returns which event is happening next, showing it on the channel.
 func cmdNext(irccon *irc.Connection, channel string, nick string, search string) {
-	var tz string      // Time zone of each user.
-	var dtstart string // Event start time.
-	var summary string // Event description.
-	// Open database and query the user's time zone.
-	db, err := sql.Open("sqlite3", dbPath)
-	defer db.Close()
+	var tz = "Europe/Berlin"
+	var event []string
+	users, err := readCSV(usersFile)
 	if err != nil {
-		irccon.Privmsg(channel, "Error opening database.")
-		log.Println("cmdNext: Error opening database.")
+		irccon.Privmsg(channel, "Error getting users.")
+		log.Println("cmdNext:", err)
 		return
-
 	}
-	row := db.QueryRow("SELECT tz FROM users WHERE nick = ? LIMIT 1", nick)
-	err = row.Scan(&tz)
-	if err != nil {
-		tz = "Europe/Berlin"
+	for _, user := range users {
+		if strings.ToLower(user[0]) == strings.ToLower(nick) {
+			tz = user[1]
+		}
 	}
 	// Do some search string replacements in case there's actually a search argument.
 	// Users use abreviated search terms, which are expanded for better database matching.
-	// Else, simply retrieve the next event that is happening closest to the current time.
+	// Retrieve the next event matching category or session criteria.
+	// Else, simply retrieve the next event from any category or session type.
 	if search != "" {
 		switch search {
-		case "f1":
-			search = "Formula 1"
-		case "f2":
-			search = "Formula 2"
-		case "f3":
-			search = "Formula 3"
-		case "qualy":
-			search = "Formula 1%Qualifying"
+		case "f1", "formula1":
+			event, err = findNext("[Formula 1]", "any")
+		case "f2", "formula2":
+			event, err = findNext("[Formula 2]", "any")
+		case "f3", "formula3":
+			event, err = findNext("[Formula 3]", "any")
+		case "qualy", "qualifying":
+			event, err = findNext("[Formula 1]", "Qualifying")
 		case "race":
-			search = "Formula 1%Race"
+			event, err = findNext("[Formula 1]", "Race")
+		default:
+			event, err = findNext("any", search)
 		}
-		row = db.QueryRow("SELECT dtstart, summary FROM events WHERE dtstart > datetime(\"now\") "+
-			"AND summary LIKE ? ORDER BY dtstart LIMIT 1", fmt.Sprintf("%%%s%%", search))
 	} else {
-		row = db.QueryRow("SELECT dtstart, summary FROM events WHERE dtstart > datetime(\"now\") " +
-			"ORDER BY dtstart LIMIT 1")
+		event, err = findNext("any", "any")
 	}
-	// Get the results from the row, do some formatting, calculate time delta and finally show the results.
-	// The times are localised as per the user's time zone before being shown.
-	// The time delta between now and the next event uses modulo to perfectly round days, hour an minutes.
-	err = row.Scan(&dtstart, &summary)
 	if err != nil {
-		irccon.Privmsg(channel, "Error querying database.")
-		log.Println("cmdNext: Error querying database.")
+		irccon.Privmsg(channel, "No event found.")
+		log.Println("cmdNext:", err)
 		return
 	}
-	t, err := time.Parse("2006-01-02 15:04:05 UTC", dtstart)
+	// Parse the time of the event, calculate time delta, do some formatting and finally show the results.
+	// The times are localised as per the user's time zone before being shown.
+	// The time delta between now and the next event uses modulo to perfectly round days, hour an minutes.
+	t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
 	if err != nil {
 		irccon.Privmsg(channel, "Error parsing time.")
 		log.Println("cmdNext: Error parsing time.")
@@ -223,14 +245,15 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 	minutes := int((delta % 3600) / 60)
 	irccon.Privmsg(channel, fmt.Sprintf(
 		"%s, %d %s at %02d:%02d \x02%s (UTC+%d)\x02 | %s | %d day(s), %d hour(s), %d minute(s)",
-		wday, mday, month, hour, min, zone, uoffset, summary, days, hours, minutes))
+		wday, mday, month, hour, min, zone, uoffset, event[0]+" "+event[1]+" "+event[2], days, hours, minutes))
+
 }
 
 func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	var correct int
 	var bets [][]string
 	var update bool
-	race, err := findNext("formula 1", "race")
+	event, err := findNext("[formula 1]", "race")
 	if err != nil {
 		irccon.Privmsg(channel, "Error finding next race.")
 		log.Println("cmdBet:", err)
@@ -244,15 +267,15 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 			return
 		}
 		for i := len(bets) - 1; i >= 0; i-- {
-			if strings.ToLower(bets[i][0]) == strings.ToLower(race) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
+			if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 				first := strings.ToUpper(bets[i][2])
 				second := strings.ToUpper(bets[i][3])
 				third := strings.ToUpper(bets[i][4])
-				irccon.Privmsg(channel, fmt.Sprintf("Your current bet for the %s: %s %s %s", race, first, second, third))
+				irccon.Privmsg(channel, fmt.Sprintf("Your current bet for the %s: %s %s %s", event[1], first, second, third))
 				return
 			}
 		}
-		irccon.Privmsg(channel, fmt.Sprintf("You haven't placed a bet for the %s yet.", race))
+		irccon.Privmsg(channel, fmt.Sprintf("You haven't placed a bet for the %s yet.", event[1]))
 		return
 	}
 	if len(bet) != 3 {
@@ -285,14 +308,14 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		return
 	}
 	for i := 0; i < len(bets); i++ {
-		if strings.ToLower(bets[i][0]) == strings.ToLower(race) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
+		if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 			update = true
-			bets[i] = []string{strings.ToLower(race), strings.ToLower(nick), first, second, third, "0"}
+			bets[i] = []string{strings.ToLower(event[1]), strings.ToLower(nick), first, second, third, "0"}
 			break
 		}
 	}
 	if !update {
-		bets = append(bets, []string{strings.ToLower(race), strings.ToLower(nick), first, second, third, "0"})
+		bets = append(bets, []string{strings.ToLower(event[1]), strings.ToLower(nick), first, second, third, "0"})
 	}
 	err = writeCSV(betsFile, bets)
 	if err != nil {
@@ -300,7 +323,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		log.Println("cmdBet:", err)
 		return
 	}
-	irccon.Privmsg(channel, "Your bet for the "+race+" was successfully updated.")
+	irccon.Privmsg(channel, "Your bet for the "+event[1]+" was successfully updated.")
 }
 
 // The parsecmd function takes a message string and breaks it down into a Command.
@@ -392,6 +415,6 @@ func main() {
 			}
 		}
 	})
-	go announce(irccon, "#motorsport")
+	go announce(irccon, channels)
 	irccon.Loop()
 }
