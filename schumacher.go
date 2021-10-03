@@ -196,7 +196,7 @@ func announce21(irccon *irc.Connection, channel string) {
 			db.Close()
 			continue
 		}
-		// If the index becomes greather than what the buffer can hold, we reset it.
+		// If the index becomes greater than what the buffer can hold, we reset it.
 		if index > 4 {
 			index = 0
 		} else {
