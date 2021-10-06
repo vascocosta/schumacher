@@ -29,6 +29,7 @@ const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full pa
 const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
 const usersFile = "/home/gluon/var/irc/bots/Schumacher/users.csv"     // Full path to the users file.
 const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
+const quizTimeout = 20
 
 var quiz bool
 
@@ -541,26 +542,41 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number strin
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
-	// This is the main loop of the goroutine, which for now only asks 5 questions to avoid SPAM.
+	// This is the main loop of the goroutine, which for now only asks up to 5 questions to avoid SPAM.
 	// After showing the question on irc, it waits for an answer on the "c" go channel and classifies it.
 	// The answer is sent to the "c" go channel on the main goroutine, inside the "PRIVMSG" callback.
-	// Eventually if no answer is sent, it times out after 15 seconds.
+	// Eventually if no correct answer is sent, it times out after quizTimeout seconds.
+	timer := time.AfterFunc(time.Duration(quizTimeout)*time.Second, func() {
+		c <- "--TIMEOUT--"
+	})
+	start := time.Now()
 	for i := 0; i < n; i++ {
-		irccon.Privmsg(channel, strconv.Itoa(i+1)+"/"+strconv.Itoa(n)+" - "+questions[i][0])
+		irccon.Privmsg(
+			channel,
+			fmt.Sprintf(
+				"%d/%d - %s (%0.0f seconds remaining)",
+				i+1, n, questions[i][0], 20-time.Since(start).Seconds(),
+			),
+		)
 		select {
 		case answer := <-c:
 			if strings.ToLower(answer) == strings.ToLower(questions[i][1]) {
+				timer.Reset(time.Duration(quizTimeout) * time.Second)
+				start = time.Now()
 				irccon.Privmsg(channel, "Correct!")
+			} else if answer == "--TIMEOUT--" {
+				timer.Reset(time.Duration(quizTimeout) * time.Second)
+				start = time.Now()
+				irccon.Privmsg(channel, "Time's up... The correct answer was: "+questions[i][1])
 			} else {
 				if i >= 0 {
 					i-- // Avoid advancing to the next question, when answer is wrong.
 				}
 				irccon.Privmsg(channel, "Wrong!")
 			}
-		case <-time.After(15 * time.Second):
-			irccon.Privmsg(channel, "Time's up... The correct answer was: "+questions[i][1])
 		}
 	}
+	timer.Stop()
 	quiz = false
 	irccon.Privmsg(channel, "The quiz is over!")
 }
