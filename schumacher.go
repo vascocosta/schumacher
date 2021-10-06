@@ -3,20 +3,24 @@ package main
 import (
 	"database/sql"
 	"encoding/csv"
+	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/thoj/go-ircevent"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const nick = "Schumacher"                                             // Nick to be used by the bot.
-const channels = "#formula1"                                          // Names of the channels to join.
+var nick = "Schumacher_"                                              // Nick to be used by the bot.
+var channels = "#motorsport"                                          // Names of the channels to join.
 const server = "irc.quakenet.org:6667"                                // Hostname of the server to connect to.
 const prefix = "!"                                                    // Prefix which is used by the user to issue commands.
 const dbPath = "/home/gluon/var/irc/bots/Senna/data/Motorsport.db"    // Full path to the database.
@@ -34,6 +38,76 @@ type Command struct {
 	Args    []string
 	Nick    string
 	Channel string
+}
+
+type DStandings struct {
+	MRData struct {
+		XMLNS          string `json:"xmlns"`
+		Series         string `json:"series"`
+		URL            string `json:"url"`
+		Limit          string `json:"limit"`
+		Offset         string `json:"offset"`
+		Total          string `json:"total"`
+		StandingsTable struct {
+			Season         string `json:"season"`
+			StandingsLists []struct {
+				Season          string `json:"season"`
+				Round           string `json:"round"`
+				DriverStandings []struct {
+					Position     string `json:"position"`
+					PositionText string `json:"positionText"`
+					Points       string `json:"points"`
+					Wins         string `json:"wins"`
+					Driver       struct {
+						DriverID        string `json:"driverId"`
+						PermanentNumber string `json:"permanentNumber"`
+						Code            string `json:"code"`
+						URL             string `json:"url"`
+						GivenName       string `json:"givenName"`
+						FamilyName      string `json:"familyName"`
+						DateOfBirth     string `json:"dateOfBirth"`
+						Nationality     string `json:"nationality"`
+					}
+					Constructors []struct {
+						ConstructorID string `json:"constructorId"`
+						URL           string `json:"url"`
+						Name          string `json:"name"`
+						Nationality   string `json:"nationality"`
+					}
+				}
+			}
+		}
+	}
+}
+
+type CStandings struct {
+	MRData struct {
+		XMLNS          string `json:"xmlns"`
+		Series         string `json:"series"`
+		URL            string `json:"url"`
+		Limit          string `json:"limit"`
+		Offset         string `json:"offset"`
+		Total          string `json:"total"`
+		StandingsTable struct {
+			Season         string `json:"season"`
+			StandingsLists []struct {
+				Season               string `json:"season"`
+				Round                string `json:"round"`
+				ConstructorStandings []struct {
+					Position     string `json:"position"`
+					PositionText string `json:"positionText"`
+					Points       string `json:"points"`
+					Wins         string `json:"wins"`
+					Constructor  struct {
+						ConstructorID string `json:"constructorId"`
+						URL           string `json:"url"`
+						Name          string `json:"name"`
+						Nationality   string `json:"nationality"`
+					}
+				}
+			}
+		}
+	}
 }
 
 // Small utility function that returns weather a slice of strings contains a given string.
@@ -74,6 +148,21 @@ func writeCSV(path string, data [][]string) (err error) {
 	err = w.WriteAll(data)
 	if err != nil {
 		err = errors.New("Error writing data to: " + path + ".")
+		return
+	}
+	return
+}
+
+func getURL(url string) (data []byte, err error) {
+	res, err := http.Get(url)
+	defer res.Body.Close()
+	if err != nil {
+		err = errors.New("Error getting HTTP data.")
+		return
+	}
+	data, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		err = errors.New("Error getting HTTP data.")
 		return
 	}
 	return
@@ -208,6 +297,61 @@ func announce21(irccon *irc.Connection, channel string) {
 		}
 		db.Close()
 	}
+}
+
+func cmdStandings(irccon *irc.Connection, channel string, nick string, championship string) {
+	var output string
+	url := "http://ergast.com/api/f1/current/"
+	if strings.ToLower(championship) == "constructor" || strings.ToLower(championship) == "constructors" {
+		championship = "constructor"
+		url += "constructorStandings.json"
+	} else {
+		championship = "driver"
+		url += "driverStandings.json"
+	}
+	data, err := getURL(url)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting standings.")
+		log.Println("cmdStandings:", err)
+		return
+	}
+	switch strings.ToLower(championship) {
+	case "driver", "drivers":
+		var standings DStandings
+		err = json.Unmarshal(data, &standings)
+		if err != nil {
+			irccon.Privmsg(channel, "Error getting driver standings.")
+			log.Println("cmdStandings:", err)
+			return
+		}
+		for _, driver := range standings.MRData.StandingsTable.StandingsLists[0].DriverStandings {
+			output += fmt.Sprintf(
+				"%s. %s %s (%s wins) ",
+				driver.Position,
+				driver.Driver.Code,
+				driver.Points,
+				driver.Wins,
+			)
+		}
+	case "constructor", "constructors":
+		var standings CStandings
+		err = json.Unmarshal(data, &standings)
+		if err != nil {
+			irccon.Privmsg(channel, "Error getting constructor standings.")
+			log.Println("cmdStandings:", err)
+			return
+		}
+		for _, constructor := range standings.MRData.StandingsTable.StandingsLists[0].ConstructorStandings {
+			output += fmt.Sprintf(
+				"%s. %s %s (%s wins) ",
+				constructor.Position,
+				constructor.Constructor.Name,
+				constructor.Points,
+				constructor.Wins,
+			)
+		}
+	}
+	irccon.Privmsg(channel, output)
 }
 
 // The next command receives an irc connection pointer, a channel, a nick and an optional search string.
@@ -422,6 +566,9 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number strin
 }
 
 func main() {
+	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
+	flag.StringVar(&channels, "channels", "#motorsport", "Names of the channels to join.")
+	flag.Parse()
 	c := make(chan string)
 	irccon := irc.IRC(nick, nick)
 	irccon.AddCallback("001", func(event *irc.Event) {
@@ -450,6 +597,10 @@ func main() {
 				if !quiz {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
+			case "wdc":
+				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
+			case "wcc":
+				go cmdStandings(irccon, command.Channel, command.Nick, "constructor")
 			}
 		}
 	})
