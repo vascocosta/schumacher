@@ -388,7 +388,7 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 		case "race":
 			event, err = findNext("[Formula 1]", "Race")
 		default:
-			event, err = findNext("any", search)
+			event, err = findNext("["+search+"]", "any")
 		}
 	} else {
 		event, err = findNext("any", "any")
