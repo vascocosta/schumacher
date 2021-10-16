@@ -223,6 +223,9 @@ func findNext(category string, session string) (event []string, err error) {
 func announce(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
 	var index = 0           // Index used to reference the buffer above.
+	// This is a separate thread, we must check if the main one is connected to IRC.
+	// While not connected to IRC sleep for 10 seconds before trying again.
+	// If eventually a connection is established we jump out of this loop and resume.
 	for !irccon.Connected() {
 		log.Println("announce: Waiting for an IRC connection.")
 		time.Sleep(10 * time.Second)
@@ -245,6 +248,8 @@ func announce(irccon *irc.Connection, channel string) {
 			continue
 		}
 		// If the index becomes greather than what the buffer can hold, we reset it.
+		// Otherwise we check if the announced buffer already contains the next event.
+		// If it doesn't, the event is announced on the channel and added to the buffer.
 		if index > 4 {
 			index = 0
 		} else {
