@@ -248,7 +248,7 @@ func announce(irccon *irc.Connection, channel string) {
 		if index > 4 {
 			index = 0
 		} else {
-			if !contains(announced[0:4], event[0]+" "+event[1]+" "+event[2]) {
+			if !contains(announced[0:5], event[0]+" "+event[1]+" "+event[2]) {
 				irccon.Privmsg(channel, "\x034Starting in 5 minutes:\x03 "+event[0]+" "+event[1]+" "+event[2])
 				announced[index] = event[0] + " " + event[1] + " " + event[2]
 				index++
