@@ -305,8 +305,11 @@ func announce21(irccon *irc.Connection, channel string) {
 	}
 }
 
+// The standings command receives an irc connection pointer, a channel, a nick and a championship string.
+// It then queries the Ergast F1 API for either the WDC or the WCC and displays the results on the channel.
 func cmdStandings(irccon *irc.Connection, channel string, nick string, championship string) {
 	var output string
+	// Base URL of the Ergast F1 API.
 	url := "http://ergast.com/api/f1/current/"
 	if strings.ToLower(championship) == "constructor" || strings.ToLower(championship) == "constructors" {
 		championship = "constructor"
@@ -315,12 +318,15 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 		championship = "driver"
 		url += "driverStandings.json"
 	}
+	// Get the raw data through HTTP.
 	data, err := getURL(url)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting standings.")
 		log.Println("cmdStandings:", err)
 		return
 	}
+	// Display the results on the channel, depending on which kind of championship was requested.
+	// The API returns in JSON format which is decoded to either a DStandings or CStandings strut.
 	switch strings.ToLower(championship) {
 	case "driver", "drivers":
 		var standings DStandings
