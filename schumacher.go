@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +108,30 @@ type CStandings struct {
 			}
 		}
 	}
+}
+
+// Type that represents a quiz score.
+type Score struct {
+	Nick string
+	Points int
+}
+
+// Type that represents a list of scores.
+// This type is needed so that we can sort the score by points (value).
+// Internally score is a map[string]int, but fmt only sorts maps by key.
+// We use sort.Sort() in cmdQuiz which requires ScoreList to implement the sort interface.
+type ScoreList []Score
+
+func (s ScoreList) Len() int {
+	return len(s)
+}
+
+func (s ScoreList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ScoreList) Less(i, j int) bool {
+	return s[i].Points < s[j].Points
 }
 
 // Small utility function that returns weather a slice of strings contains a given string.
@@ -490,11 +515,12 @@ func parseCommand(message string, nick string, channel string) (command Command,
 	}
 }
 
-// The quiz command receives an irc connection pointer, an irc channel and a string channel.
+// The quiz command receives an irc connection pointer, an irc channel and a [2]string channel.
 // It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
-func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number string) {
+func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number string) {
 	quiz = true
+	score := make(map[string]int)
 	n, err := strconv.Atoi(number)
 	if err != nil || (n <= 0 || n > 10) {
 		n = 5
@@ -513,7 +539,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number strin
 	// The answer is sent to the "c" go channel on the main goroutine, inside the "PRIVMSG" callback.
 	// Eventually if no correct answer is sent, it times out after quizTimeout seconds.
 	timer := time.AfterFunc(time.Duration(quizTimeout)*time.Second, func() {
-		c <- "--TIMEOUT--"
+		c <- [2]string{nick, "--TIMEOUT--"}
 	})
 	start := time.Now()
 	for i := 0; i < n; i++ {
@@ -526,11 +552,12 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number strin
 		)
 		select {
 		case answer := <-c:
-			if strings.ToLower(answer) == strings.ToLower(questions[i][1]) {
+			if strings.ToLower(answer[1]) == strings.ToLower(questions[i][1]) {
 				timer.Reset(time.Duration(quizTimeout) * time.Second)
 				start = time.Now()
 				irccon.Privmsg(channel, "Correct!")
-			} else if answer == "--TIMEOUT--" {
+				score[answer[0]] += 1
+			} else if answer[0] == nick && answer[1] == "--TIMEOUT--" {
 				timer.Reset(time.Duration(quizTimeout) * time.Second)
 				start = time.Now()
 				irccon.Privmsg(channel, "Time's up... The correct answer was: "+questions[i][1])
@@ -542,16 +569,36 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan string, number strin
 			}
 		}
 	}
+	// At the end of the quiz we stop the timer and set quiz to false.
+	// We then proceed to show the final score sorted by points (value).
+	// Internally we store the score in a map[string]int but fmt only sorts maps by key.
+	// Therefore we must use a trick to sort by points (value) which is to use sort.Sort.
+	// sort.Sort requires us to use a slice of struts (ScoreList) which we declare above.
+	// We create a ScoreList with the length of scores and populate it with its values.
+	// Finally we use sort.Reverse to sort by highest score and show the results.
 	timer.Stop()
 	quiz = false
 	irccon.Privmsg(channel, "The quiz is over!")
+	time.Sleep(1 * time.Second)
+	irccon.Privmsg(channel, "Score:")
+	scoreList := make(ScoreList, len(score))
+	i := 0
+	for key, value := range score {
+		scoreList[i] = Score{key, value}
+		i++
+	}
+	sort.Sort(sort.Reverse(scoreList))
+	for _, value := range scoreList {
+		irccon.Privmsg(channel, fmt.Sprintf("%s - %d", value.Nick, value.Points))
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func main() {
 	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
 	flag.StringVar(&channels, "channels", "#motorsport", "Names of the channels to join.")
 	flag.Parse()
-	c := make(chan string)
+	c := make(chan [2]string)
 	irccon := irc.IRC(nick, nick)
 	irccon.AddCallback("001", func(event *irc.Event) {
 		irccon.Join(channels)
@@ -567,7 +614,7 @@ func main() {
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
 			if quiz {
-				c <- m
+				c <- [2]string{event.Nick, event.Message()}
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
