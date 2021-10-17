@@ -58,6 +58,7 @@ type Command struct {
 	Channel string
 }
 
+// Type that represents the F1 World Driver Championship standings.
 type DStandings struct {
 	MRData struct {
 		XMLNS          string `json:"xmlns"`
@@ -98,6 +99,7 @@ type DStandings struct {
 	}
 }
 
+// Type that represents the F1 World Constructor Championship standings.
 type CStandings struct {
 	MRData struct {
 		XMLNS          string `json:"xmlns"`
@@ -179,6 +181,7 @@ func readCSV(path string) (data [][]string, err error) {
 	return
 }
 
+// Small utility function that writes a slice of slice of strings to a CSV file.
 func writeCSV(path string, data [][]string) (err error) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 	defer f.Close()
@@ -195,6 +198,7 @@ func writeCSV(path string, data [][]string) (err error) {
 	return
 }
 
+// Small utility function that fetches and returns raw data from an URL using HTTP.
 func getURL(url string) (data []byte, err error) {
 	res, err := http.Get(url)
 	defer res.Body.Close()
@@ -210,7 +214,7 @@ func getURL(url string) (data []byte, err error) {
 	return
 }
 
-//The findNext function receives a category and session and returns the chronologically next event matching that criteria.
+// The findNext function receives a category and session and returns the chronologically next event matching that criteria.
 func findNext(category string, session string) (event []string, err error) {
 	var t time.Time
 	events, err := readCSV(eventsFile)
