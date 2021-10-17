@@ -1,13 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/thoj/go-ircevent"
 	"io/ioutil"
 	"log"
@@ -259,49 +257,6 @@ func announce(irccon *irc.Connection, channel string) {
 				index++
 			}
 		}
-	}
-}
-
-// The announce function runs in the background as a goroutine polling for new events.
-func announce21(irccon *irc.Connection, channel string) {
-	var announced [5]string // Small buffer to hold recently announced events.
-	var index = 0           // Index used to reference the buffer above.
-	var dtstart string      // Event start time.
-	var summary string      // Event description.
-	for !irccon.Connected() {
-		log.Println("announce: Waiting for an IRC connection.")
-		time.Sleep(10 * time.Second)
-	}
-	// Loop that runs every minute opening the database and querying any event that starts within 5 minutes.
-	for {
-		time.Sleep(60 * time.Second)
-		db, err := sql.Open("sqlite3", dbPath)
-		if err != nil {
-			log.Println("announce: Error opening database.")
-			db.Close()
-			continue
-		}
-		row := db.QueryRow("SELECT dtstart, summary FROM events WHERE dtstart > datetime(\"now\") " +
-			"AND dtstart < datetime(\"now\", \"+5 Minute\") LIMIT 1")
-		err = row.Scan(&dtstart, &summary)
-		if err != nil {
-			if err.Error() != "sql: no rows in result set" {
-				log.Println("announce: Error querying database.")
-			}
-			db.Close()
-			continue
-		}
-		// If the index becomes greater than what the buffer can hold, we reset it.
-		if index > 4 {
-			index = 0
-		} else {
-			if !contains(announced[0:4], summary) {
-				irccon.Privmsg(channel, "\x034Starting in 5 minutes:\x03 "+summary)
-				announced[index] = summary
-				index++
-			}
-		}
-		db.Close()
 	}
 }
 
