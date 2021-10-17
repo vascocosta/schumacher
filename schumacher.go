@@ -40,7 +40,6 @@ var nick = "Schumacher_"                                              // Nick to
 var channels = "#motorsport"                                          // Names of the channels to join.
 const server = "irc.quakenet.org:6667"                                // Hostname of the server to connect to.
 const prefix = "!"                                                    // Prefix which is used by the user to issue commands.
-const dbPath = "/home/gluon/var/irc/bots/Senna/data/Motorsport.db"    // Full path to the database.
 const betsFile = "/home/gluon/var/irc/bots/Schumacher/bets.csv"       // Full path to the bets file.
 const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
 const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
