@@ -14,7 +14,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 package main
 
@@ -131,7 +131,7 @@ type CStandings struct {
 
 // Type that represents a quiz score.
 type Score struct {
-	Nick string
+	Nick   string
 	Points int
 }
 
@@ -303,6 +303,24 @@ func announce(irccon *irc.Connection, channel string) {
 				index++
 			}
 		}
+	}
+}
+
+// The help command receives an irc connection pointer, a channel and a nick.
+// It then shows a help message listing all the possible commands of the bot.
+func cmdHelp(irccon *irc.Connection, channel string, nick string) {
+	help := []string{
+		"bet <xxx> <yyy> <zzz> - Place a bet for the next F1 race.",
+		"help - Show this help message.",
+		"next [category] - Show the next motorsport event.",
+		"quiz [number] - Start an F1 quiz game.",
+		"wbc - Show the current Betting Championship standings.",
+		"wcc - Show the current World Constructor Championship standings.",
+		"wdc - Show the current World Driver Championship standings.",
+	}
+	for _, value := range help {
+		irccon.Privmsg(channel, value)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -639,6 +657,8 @@ func main() {
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
+			case "commands", "help":
+				cmdHelp(irccon, command.Channel, command.Nick)
 			case "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
 			case "bet22":
