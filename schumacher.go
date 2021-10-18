@@ -308,7 +308,7 @@ func announce(irccon *irc.Connection, channel string) {
 
 // The help command receives an irc connection pointer, a channel and a nick.
 // It then shows a help message listing all the possible commands of the bot.
-func cmdHelp(irccon *irc.Connection, channel string, nick string) {
+func cmdHelp(irccon *irc.Connection, channel string, nick string, search string) {
 	help := [7]string{
 		prefix + "bet <xxx> <yyy> <zzz> - Place a bet for the next F1 race.",
 		prefix + "help - Show this help message.",
@@ -319,7 +319,12 @@ func cmdHelp(irccon *irc.Connection, channel string, nick string) {
 		prefix + "wdc - Show the current World Driver Championship standings.",
 	}
 	for _, value := range help {
-		irccon.Privmsg(channel, value)
+		if search == "" {
+			irccon.Privmsg(channel, value)
+		} else if strings.HasPrefix(value[1:], strings.ToLower(search)) {
+			irccon.Privmsg(channel, value)
+			return
+		}
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -658,7 +663,7 @@ func main() {
 		} else {
 			switch strings.ToLower(command.Name) {
 			case "commands", "help":
-				cmdHelp(irccon, command.Channel, command.Nick)
+				cmdHelp(irccon, command.Channel, command.Nick, strings.Join(command.Args, ""))
 			case "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
 			case "bet22":
