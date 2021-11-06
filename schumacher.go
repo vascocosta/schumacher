@@ -299,15 +299,15 @@ func tskFeeds(irccon *irc.Connection) {
 	}
 }
 
-// The announce function runs in the background as a goroutine polling for new events.
-func announce(irccon *irc.Connection, channel string) {
+// The tskEvents function runs in the background as a goroutine polling for new events.
+func tskEvents(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
 	var index = 0           // Index used to reference the buffer above.
 	// This is a separate thread, we must check if the main one is connected to IRC.
 	// While not connected to IRC sleep for 10 seconds before trying again.
 	// If eventually a connection is established we jump out of this loop and resume.
 	for !irccon.Connected() {
-		log.Println("announce: Waiting for an IRC connection.")
+		log.Println("tskEvents: Waiting for an IRC connection.")
 		time.Sleep(10 * time.Second)
 	}
 	// Loop that runs every minute opening the events CSV file and querying any event that starts within 5 minutes.
@@ -315,12 +315,12 @@ func announce(irccon *irc.Connection, channel string) {
 		time.Sleep(60 * time.Second)
 		event, err := findNext("any", "any")
 		if err != nil {
-			log.Println("announce:", err)
+			log.Println("tskEvents:", err)
 			continue
 		}
 		t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
 		if err != nil {
-			log.Println("announce: Error parsing time.")
+			log.Println("tskEvents: Error parsing time.")
 			continue
 		}
 		delta := time.Until(t)
@@ -715,7 +715,7 @@ func main() {
 			}
 		}
 	})
-	go announce(irccon, channels)
+	go tskEvents(irccon, channels)
 	go tskFeeds(irccon)
 	irccon.Loop()
 }
