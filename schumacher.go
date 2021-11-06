@@ -24,6 +24,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/mmcdole/gofeed"
 	"github.com/thoj/go-ircevent"
 	"io/ioutil"
 	"log"
@@ -43,9 +44,11 @@ const prefix = "!"                                                    // Prefix 
 const betsFile = "/home/gluon/var/irc/bots/Schumacher/bets.csv"       // Full path to the bets file.
 const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
 const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
+const feedsFile = "/home/gluon/var/irc/bots/Schumacher/feeds.csv"     // Full path to the feeds file.
 const usersFile = "/home/gluon/var/irc/bots/Schumacher/users.csv"     // Full path to the users file.
 const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
 const quizTimeout = 20
+const hns = 3600000000000
 
 var quiz bool
 
@@ -261,6 +264,39 @@ func findNext(category string, session string) (event []string, err error) {
 	}
 	err = errors.New("No event found.")
 	return
+}
+
+func tskFeeds(irccon *irc.Connection) {
+	feeds, err := readCSV(feedsFile)
+	if err != nil {
+		log.Println("feed:", err)
+		return
+	}
+	for {
+		time.Sleep(60 * time.Second)
+		for key, value := range feeds {
+			fp := gofeed.NewParser()
+			feed, err := fp.ParseURL(value[0])
+			if err != nil {
+				log.Println("feed:", err)
+				continue
+			}
+			for _, item := range feed.Items {
+				lastTime, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", feeds[key][2])
+				if err != nil {
+					lastTime, _ = time.Parse("2006-01-02 15:04:05 +0000 UTC", "2021-01-01 00:00:00 +0000 UTC")
+				}
+				itemTime := item.PublishedParsed
+				if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
+					irccon.Privmsg(feeds[key][1], item.Title)
+					irccon.Privmsg(feeds[key][1], item.Link)
+					feeds[key][2] = fmt.Sprintf("%s", itemTime)
+					writeCSV(feedsFile, feeds)
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+	}
 }
 
 // The announce function runs in the background as a goroutine polling for new events.
@@ -680,5 +716,6 @@ func main() {
 		}
 	})
 	go announce(irccon, channels)
+	go tskFeeds(irccon)
 	irccon.Loop()
 }
