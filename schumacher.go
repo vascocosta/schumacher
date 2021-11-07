@@ -291,11 +291,7 @@ func tskFeeds(irccon *irc.Connection) {
 				itemTime := item.PublishedParsed
 				if itemTime.After(lastTime) && time.Since((*itemTime)) < 6*hns {
 					irccon.Privmsg(feeds[key][1], "\x02"+item.Title+"\x02")
-					if !strings.Contains(item.Link, "?") {
-						irccon.Privmsg(feeds[key][1], item.Link)
-					} else {
-						irccon.Privmsg(feeds[key][1], strings.Split(item.Link, "?")[0])
-					}
+					irccon.Privmsg(feeds[key][1], item.Link)
 					feeds[key][2] = fmt.Sprintf("%s", itemTime)
 					writeCSV(feedsFile, feeds)
 					time.Sleep(1 * time.Second)
