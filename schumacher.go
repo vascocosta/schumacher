@@ -219,6 +219,7 @@ func getURL(url string) (data []byte, err error) {
 // The findNext function receives a category and session and returns the chronologically next event matching that criteria.
 func findNext(category string, session string) (event []string, err error) {
 	var t time.Time
+	var timeFormat = "2006-01-02 15:04:05 UTC"
 	events, err := readCSV(eventsFile)
 	if err != nil {
 		return
@@ -226,14 +227,14 @@ func findNext(category string, session string) (event []string, err error) {
 	for _, e := range events {
 		switch {
 		case strings.ToLower(category) == "any" && strings.ToLower(session) == "any":
-			t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+			t, err = time.Parse(timeFormat, e[3])
 			if err != nil {
 				err = errors.New("Error parsing time.")
 				return event, err
 			}
 		case strings.ToLower(category) != "any" && strings.ToLower(session) == "any":
 			if strings.ToLower(e[0]) == strings.ToLower(category) {
-				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("Error parsing time.")
 					return event, err
@@ -241,7 +242,7 @@ func findNext(category string, session string) (event []string, err error) {
 			}
 		case strings.ToLower(category) == "any" && strings.ToLower(session) != "any":
 			if strings.ToLower(e[2]) == strings.ToLower(session) {
-				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("Error parsing time.")
 					return event, err
@@ -249,7 +250,7 @@ func findNext(category string, session string) (event []string, err error) {
 			}
 		default:
 			if strings.ToLower(e[0]) == strings.ToLower(category) && strings.ToLower(e[2]) == strings.ToLower(session) {
-				t, err = time.Parse("2006-01-02 15:04:05 UTC", e[3])
+				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("Error parsing time.")
 					return event, err
@@ -267,6 +268,7 @@ func findNext(category string, session string) (event []string, err error) {
 }
 
 func tskFeeds(irccon *irc.Connection) {
+	var timeFormat = "2006-01-02 15:04:05 +0000 UTC"
 	feeds, err := readCSV(feedsFile)
 	if err != nil {
 		log.Println("feed:", err)
@@ -282,14 +284,18 @@ func tskFeeds(irccon *irc.Connection) {
 				continue
 			}
 			for _, item := range feed.Items {
-				lastTime, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", feeds[key][2])
+				lastTime, err := time.Parse(timeFormat, feeds[key][2])
 				if err != nil {
-					lastTime, _ = time.Parse("2006-01-02 15:04:05 +0000 UTC", "2021-01-01 00:00:00 +0000 UTC")
+					lastTime, _ = time.Parse(timeFormat, "2021-01-01 00:00:00 +0000 UTC")
 				}
 				itemTime := item.PublishedParsed
-				if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
-					irccon.Privmsg(feeds[key][1], item.Title)
-					irccon.Privmsg(feeds[key][1], item.Link)
+				if itemTime.After(lastTime) && time.Since((*itemTime)) < 6*hns {
+					irccon.Privmsg(feeds[key][1], "\x02"+item.Title+"\x02")
+					if !strings.Contains(item.Link, "?") {
+						irccon.Privmsg(feeds[key][1], item.Link)
+					} else {
+						irccon.Privmsg(feeds[key][1], strings.Split(item.Link, "?")[0])
+					}
 					feeds[key][2] = fmt.Sprintf("%s", itemTime)
 					writeCSV(feedsFile, feeds)
 					time.Sleep(1 * time.Second)
@@ -303,6 +309,7 @@ func tskFeeds(irccon *irc.Connection) {
 func tskEvents(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
 	var index = 0           // Index used to reference the buffer above.
+	var timeFormat = "2006-01-02 15:04:05 UTC"
 	// This is a separate thread, we must check if the main one is connected to IRC.
 	// While not connected to IRC sleep for 10 seconds before trying again.
 	// If eventually a connection is established we jump out of this loop and resume.
@@ -318,7 +325,7 @@ func tskEvents(irccon *irc.Connection, channel string) {
 			log.Println("tskEvents:", err)
 			continue
 		}
-		t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+		t, err := time.Parse(timeFormat, event[3])
 		if err != nil {
 			log.Println("tskEvents: Error parsing time.")
 			continue
@@ -431,6 +438,7 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 func cmdNext(irccon *irc.Connection, channel string, nick string, search string) {
 	var tz = "Europe/Berlin"
 	var event []string
+	var timeFormat = "2006-01-02 15:04:05 UTC"
 	users, err := readCSV(usersFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting users.")
@@ -472,7 +480,7 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 	// Parse the time of the event, calculate time delta, do some formatting and finally show the results.
 	// The times are localised as per the user's time zone before being shown.
 	// The time delta between now and the next event uses modulo to perfectly round days, hour an minutes.
-	t, err := time.Parse("2006-01-02 15:04:05 UTC", event[3])
+	t, err := time.Parse(timeFormat, event[3])
 	if err != nil {
 		irccon.Privmsg(channel, "Error parsing time.")
 		log.Println("cmdNext: Error parsing time.")
