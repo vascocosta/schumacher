@@ -267,14 +267,15 @@ func findNext(category string, session string) (event []string, err error) {
 	return
 }
 
+// The tskFeeds function runs in the background as a goroutine polling a collection of news feeds.
 func tskFeeds(irccon *irc.Connection) {
-	var timeFormat = "2006-01-02 15:04:05 +0000 UTC"
-	feeds, err := readCSV(feedsFile)
-	if err != nil {
-		log.Println("feed:", err)
-		return
-	}
+	var timeFormat = "2006-01-02 15:04:05 +0000 UTC" // Time format string used by the time package.
 	for {
+		feeds, err := readCSV(feedsFile)
+		if err != nil {
+			log.Println("feed:", err)
+			continue
+		}
 		time.Sleep(60 * time.Second)
 		for key, value := range feeds {
 			fp := gofeed.NewParser()
@@ -286,11 +287,11 @@ func tskFeeds(irccon *irc.Connection) {
 			for _, item := range feed.Items {
 				lastTime, err := time.Parse(timeFormat, feeds[key][2])
 				if err != nil {
-					lastTime, _ = time.Parse(timeFormat, "2021-01-01 00:00:00 +0000 UTC")
+					lastTime, _ = time.Parse(timeFormat, timeFormat)
 				}
 				itemTime := item.PublishedParsed
-				if itemTime.After(lastTime) && time.Since((*itemTime)) < 6*hns {
-					irccon.Privmsg(feeds[key][1], "\x02"+item.Title+"\x02")
+				if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
+					irccon.Privmsg(feeds[key][1], "\x02["+item.Title+"]\x02")
 					irccon.Privmsg(feeds[key][1], item.Link)
 					feeds[key][2] = fmt.Sprintf("%s", itemTime)
 					writeCSV(feedsFile, feeds)
@@ -305,7 +306,7 @@ func tskFeeds(irccon *irc.Connection) {
 func tskEvents(irccon *irc.Connection, channel string) {
 	var announced [5]string // Small buffer to hold recently announced events.
 	var index = 0           // Index used to reference the buffer above.
-	var timeFormat = "2006-01-02 15:04:05 UTC"
+	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
 	// This is a separate thread, we must check if the main one is connected to IRC.
 	// While not connected to IRC sleep for 10 seconds before trying again.
 	// If eventually a connection is established we jump out of this loop and resume.
