@@ -49,6 +49,7 @@ const usersFile = "/home/gluon/var/irc/bots/Schumacher/users.csv"     // Full pa
 const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
 const quizTimeout = 20
 const hns = 3600000000000
+const feedInterval = 300
 
 var quiz bool
 
@@ -270,30 +271,37 @@ func findNext(category string, session string) (event []string, err error) {
 // The tskFeeds function runs in the background as a goroutine polling a collection of news feeds.
 func tskFeeds(irccon *irc.Connection) {
 	var timeFormat = "2006-01-02 15:04:05 +0000 UTC" // Time format string used by the time package.
+	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
 	for {
+		time.Sleep(feedInterval * time.Second)
 		feeds, err := readCSV(feedsFile)
 		if err != nil {
-			log.Println("feed:", err)
+			log.Println("tskFeeds:", err)
 			continue
 		}
-		time.Sleep(60 * time.Second)
 		for key, value := range feeds {
 			fp := gofeed.NewParser()
-			feed, err := fp.ParseURL(value[0])
+			feed, err := fp.ParseURL(value[1])
 			if err != nil {
 				log.Println("feed:", err)
 				continue
 			}
 			for _, item := range feed.Items {
-				lastTime, err := time.Parse(timeFormat, feeds[key][2])
+				// The lastTime variable keeps track of when the last feed item was retrieved.
+				// If we cannot parse the time (first time) then we use timeFormat as lastTime.
+				// We could use any time in the past here, but timeFormat is already available.
+				lastTime, err := time.Parse(timeFormat, feeds[key][3])
 				if err != nil {
 					lastTime, _ = time.Parse(timeFormat, timeFormat)
 				}
 				itemTime := item.PublishedParsed
+				// We only want to show a feed item if itemTime > lastTime.
+				// Additionally we also want to make sure the feed item is no older than 2 hours.
+				// This assures only current news when restarting the bot or changing the feeds.
 				if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
-					irccon.Privmsg(feeds[key][1], "\x02["+item.Title+"]\x02")
-					irccon.Privmsg(feeds[key][1], item.Link)
-					feeds[key][2] = fmt.Sprintf("%s", itemTime)
+					irccon.Privmsg(feeds[key][2], fmt.Sprintf("\x02[%s] [%s]\x02", feeds[key][0], item.Title))
+					irccon.Privmsg(feeds[key][2], item.Link)
+					feeds[key][3] = fmt.Sprintf("%s", itemTime)
 					writeCSV(feedsFile, feeds)
 					time.Sleep(1 * time.Second)
 				}
@@ -304,8 +312,8 @@ func tskFeeds(irccon *irc.Connection) {
 
 // The tskEvents function runs in the background as a goroutine polling for new events.
 func tskEvents(irccon *irc.Connection, channel string) {
-	var announced [5]string // Small buffer to hold recently announced events.
-	var index = 0           // Index used to reference the buffer above.
+	var announced [5]string                    // Small buffer to hold recently announced events.
+	var index = 0                              // Index used to reference the buffer above.
 	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
 	// This is a separate thread, we must check if the main one is connected to IRC.
 	// While not connected to IRC sleep for 10 seconds before trying again.
