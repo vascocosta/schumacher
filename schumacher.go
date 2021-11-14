@@ -37,20 +37,22 @@ import (
 	"time"
 )
 
-var nick = "Schumacher_"                                              // Nick to be used by the bot.
-var channels = "#motorsport"                                          // Names of the channels to join.
-const server = "irc.quakenet.org:6667"                                // Hostname of the server to connect to.
-const prefix = "!"                                                    // Prefix which is used by the user to issue commands.
-const betsFile = "/home/gluon/var/irc/bots/Schumacher/bets.csv"       // Full path to the bets file.
-const driversFile = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
-const eventsFile = "/home/gluon/var/irc/bots/Schumacher/events.csv"   // Full path to the events file.
-const feedsFile = "/home/gluon/var/irc/bots/Schumacher/feeds.csv"     // Full path to the feeds file.
-const usersFile = "/home/gluon/var/irc/bots/Schumacher/users.csv"     // Full path to the users file.
-const quizFile = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"       // Full path to the quiz file.
-const quizTimeout = 20
-const hns = 3600000000000
-const feedInterval = 300
+const (
+	server       = "irc.quakenet.org:6667"                           // Hostname of the server to connect to.
+	prefix       = "!"                                               // Prefix which is used by the user to issue commands.
+	betsFile     = "/home/gluon/var/irc/bots/Schumacher/bets.csv"    // Full path to the bets file.
+	driversFile  = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
+	eventsFile   = "/home/gluon/var/irc/bots/Schumacher/events.csv"  // Full path to the events file.
+	feedsFile    = "/home/gluon/var/irc/bots/Schumacher/feeds.csv"   // Full path to the feeds file.
+	usersFile    = "/home/gluon/var/irc/bots/Schumacher/users.csv"   // Full path to the users file.
+	quizFile     = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"    // Full path to the quiz file.
+	quizTimeout  = 20
+	hns          = 3600000000000
+	feedInterval = 300
+)
 
+var nick = "Schumacher_"     // Nick to be used by the bot.
+var channels = "#motorsport" // Names of the channels to join.
 var quiz bool
 
 // Type that represents an IRC command issued by the user.
