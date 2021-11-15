@@ -696,17 +696,26 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 	}
 }
 
-func cmdQuote(irccon *irc.Connection, channel string, nick string, args []string) {
+// The quote command receives an irc connection pointer, a channel and an arguments slice of strings.
+// It then checks if there are arguments and displays a random quote or adds a new quote accordingly.
+func cmdQuote(irccon *irc.Connection, channel string, args []string) {
+	// Get a collection of quotes stored as a CSV file.
 	quotes, err := readCSV(quotesFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting quote.")
 		log.Println("cmdQuote:", err)
 		return
 	}
+	// If there are no arguments or if the first argument is "get", show a random quote.
+	// We seed the randomizer with some variable number, the current time in nano seconds.
+	// Then we set the index to the quotes to a random number between 0 and the length of quotes.
+	// Finally we show a random quote on the channel.
 	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(quotes))
 		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", quotes[index][1], quotes[index][0]))
+	// If there is more than one argument and the first argument is add, add the provided quote.
+	// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
 		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " ")})
 		err = writeCSV(quotesFile, quotes)
@@ -716,6 +725,8 @@ func cmdQuote(irccon *irc.Connection, channel string, nick string, args []string
 			return
 		}
 		irccon.Privmsg(channel, "Quote added.")
+	// Otherwise, if we get here, it means the user didn't use the command correctly.
+	// Ttherefore we show a usage message on the channel.
 	} else {
 		irccon.Privmsg(channel, "Usage: !quote [add|get] [text]")
 	}
