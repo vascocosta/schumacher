@@ -348,7 +348,11 @@ func tskEvents(irccon *irc.Connection, channel string) {
 			index = 0
 		} else {
 			if !contains(announced[0:5], event[0]+" "+event[1]+" "+event[2]) {
-				irccon.Privmsg(channel, "\x034Starting in 5 minutes:\x03 "+event[0]+" "+event[1]+" "+event[2])
+				irccon.Privmsg(
+					channel,
+					fmt.Sprintf(
+						"\x034Starting in 5 minutes:\x03 \x02%s %s %s\x02",
+						event[0], event[1], event[2]))
 				announced[index] = event[0] + " " + event[1] + " " + event[2]
 				index++
 			}
