@@ -46,6 +46,7 @@ const (
 	feedsFile    = "/home/gluon/var/irc/bots/Schumacher/feeds.csv"   // Full path to the feeds file.
 	usersFile    = "/home/gluon/var/irc/bots/Schumacher/users.csv"   // Full path to the users file.
 	quizFile     = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"    // Full path to the quiz file.
+	quotesFile   = "/home/gluon/var/irc/bots/Schumacher/quotes.csv"  // Full path to the quotes file.
 	quizTimeout  = 20
 	hns          = 3600000000000
 	feedInterval = 300
@@ -695,6 +696,31 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 	}
 }
 
+func cmdQuote(irccon *irc.Connection, channel string, nick string, args []string) {
+	quotes, err := readCSV(quotesFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting quote.")
+		log.Println("cmdQuote:", err)
+		return
+	}
+	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
+		rand.Seed(time.Now().UnixNano())
+		index := rand.Intn(len(quotes))
+		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", quotes[index][1], quotes[index][0]))
+	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
+		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " ")})
+		err = writeCSV(quotesFile, quotes)
+		if err != nil {
+			irccon.Privmsg(channel, "Error adding quote.")
+			log.Println("cmdQuote:", err)
+			return
+		}
+		irccon.Privmsg(channel, "Quote added.")
+	} else {
+		irccon.Privmsg(channel, "Usage: !quote [add|get] [text]")
+	}
+}
+
 func main() {
 	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
 	flag.StringVar(&channels, "channels", "#motorsport", "Names of the channels to join.")
@@ -729,6 +755,8 @@ func main() {
 				if !quiz {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
+			case "quote":
+				cmdQuote(irccon, command.Channel, command.Nick, command.Args)
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":
