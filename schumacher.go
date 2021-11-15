@@ -714,7 +714,7 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(quotes))
 		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", quotes[index][1], quotes[index][0]))
-	// If there is more than one argument and the first argument is add, add the provided quote.
+	// If there is more than one argument and the first argument is "add", add the provided quote.
 	// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
 		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " ")})
