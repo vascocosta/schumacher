@@ -361,14 +361,15 @@ func tskEvents(irccon *irc.Connection, channel string) {
 	}
 }
 
-// The help command receives an irc connection pointer, a channel and a nick.
-// It then shows a help message listing all the possible commands of the bot.
-func cmdHelp(irccon *irc.Connection, channel string, nick string, search string) {
+// The help command receives an irc connection pointer, a channel and a search string.
+// It then shows a compact help message listing all the possible commands of the bot.
+func cmdHelp(irccon *irc.Connection, channel string, search string) {
 	help := [7]string{
 		prefix + "bet <xxx> <yyy> <zzz> - Place a bet for the next F1 race.",
 		prefix + "help - Show this help message.",
 		prefix + "next [category] - Show the next motorsport event.",
 		prefix + "quiz [number] - Start an F1 quiz game.",
+		prefix + "quote [get/add] [text] - Get a random quote or add one.",
 		prefix + "wbc - Show the current Betting Championship standings.",
 		prefix + "wcc - Show the current World Constructor Championship standings.",
 		prefix + "wdc - Show the current World Driver Championship standings.",
@@ -522,7 +523,6 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 	irccon.Privmsg(channel, fmt.Sprintf(
 		"%s, %d %s at %02d:%02d \x02%s (UTC+%d)\x02 | %s | %d day(s), %d hour(s), %d minute(s)",
 		wday, mday, month, hour, min, zone, uoffset, event[0]+" "+event[1]+" "+event[2], days, hours, minutes))
-
 }
 
 func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
@@ -728,7 +728,7 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 	// Otherwise, if we get here, it means the user didn't use the command correctly.
 	// Ttherefore we show a usage message on the channel.
 	} else {
-		irccon.Privmsg(channel, "Usage: !quote [add|get] [text]")
+		irccon.Privmsg(channel, "Usage: !quote [get|add] [text]")
 	}
 }
 
