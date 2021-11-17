@@ -40,6 +40,7 @@ import (
 const (
 	server       = "irc.quakenet.org:6667"                           // Hostname of the server to connect to.
 	prefix       = "!"                                               // Prefix which is used by the user to issue commands.
+	answersFile  = "/home/gluon/var/irc/bots/Schumacher/answers.csv" // Full path to the answers file.
 	betsFile     = "/home/gluon/var/irc/bots/Schumacher/bets.csv"    // Full path to the bets file.
 	driversFile  = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
 	eventsFile   = "/home/gluon/var/irc/bots/Schumacher/events.csv"  // Full path to the events file.
@@ -364,7 +365,8 @@ func tskEvents(irccon *irc.Connection, channel string) {
 // The help command receives an irc connection pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(irccon *irc.Connection, channel string, search string) {
-	help := [7]string{
+	help := [9]string{
+		prefix + "ask <question>.",
 		prefix + "bet <xxx> <yyy> <zzz> - Place a bet for the next F1 race.",
 		prefix + "help - Show this help message.",
 		prefix + "next [category] - Show the next motorsport event.",
@@ -714,8 +716,8 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(quotes))
 		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", quotes[index][1], quotes[index][0]))
-	// If there is more than one argument and the first argument is "add", add the provided quote.
-	// Finally we show a confirmation message on the channel.
+		// If there is more than one argument and the first argument is "add", add the provided quote.
+		// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
 		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " ")})
 		err = writeCSV(quotesFile, quotes)
@@ -725,10 +727,35 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 			return
 		}
 		irccon.Privmsg(channel, "Quote added.")
-	// Otherwise, if we get here, it means the user didn't use the command correctly.
-	// Ttherefore we show a usage message on the channel.
+		// Otherwise, if we get here, it means the user didn't use the command correctly.
+		// Ttherefore we show a usage message on the channel.
 	} else {
 		irccon.Privmsg(channel, "Usage: !quote [get|add] [text]")
+	}
+}
+
+// The ask command receives an irc connection pointer, a channel and an arguments slice of strings.
+// It then checks if the user has asked a question and displays a random answer on the channel.
+func cmdAsk(irccon *irc.Connection, channel string, args []string) {
+	// Get a collection of answers stored as a CSV file.
+	answers, err := readCSV(answersFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting answer.")
+		log.Println("cmdAsk:", err)
+		return
+	}
+	// If the number of arguments is greater than 0, a question was asked, we show a random answer.
+	// We seed the randomizer with some variable number, the current time in nano seconds.
+	// Then we set the index to the answers to a random number between 0 and the length of answers.
+	// Finally we show a random answer on the channel.
+	if len(args) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		index := rand.Intn(len(answers))
+		irccon.Privmsg(channel, fmt.Sprintf("%s", answers[index][0]))
+		// Otherwise, if we get here, it means the user didn't use the command correctly.
+		// Ttherefore we show a usage message on the channel.
+	} else {
+		irccon.Privmsg(channel, "Usage: !ask <question>")
 	}
 }
 
@@ -756,8 +783,10 @@ func main() {
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
+			case "ask":
+				cmdAsk(irccon, command.Channel, command.Args)
 			case "commands", "help":
-				cmdHelp(irccon, command.Channel, command.Nick, strings.Join(command.Args, ""))
+				cmdHelp(irccon, command.Channel, strings.Join(command.Args, ""))
 			case "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
 			case "bet22":
@@ -767,7 +796,7 @@ func main() {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
 			case "quote":
-				cmdQuote(irccon, command.Channel, command.Nick, command.Args)
+				cmdQuote(irccon, command.Channel, command.Args)
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":
