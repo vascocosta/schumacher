@@ -38,16 +38,17 @@ import (
 )
 
 const (
-	server       = "irc.quakenet.org:6667"                           // Hostname of the server to connect to.
-	prefix       = "!"                                               // Prefix which is used by the user to issue commands.
-	answersFile  = "/home/gluon/var/irc/bots/Schumacher/answers.csv" // Full path to the answers file.
-	betsFile     = "/home/gluon/var/irc/bots/Schumacher/bets.csv"    // Full path to the bets file.
-	driversFile  = "/home/gluon/var/irc/bots/Schumacher/drivers.csv" // Full path to the drivers file.
-	eventsFile   = "/home/gluon/var/irc/bots/Schumacher/events.csv"  // Full path to the events file.
-	feedsFile    = "/home/gluon/var/irc/bots/Schumacher/feeds.csv"   // Full path to the feeds file.
-	usersFile    = "/home/gluon/var/irc/bots/Schumacher/users.csv"   // Full path to the users file.
-	quizFile     = "/home/gluon/var/irc/bots/Schumacher/quiz.csv"    // Full path to the quiz file.
-	quotesFile   = "/home/gluon/var/irc/bots/Schumacher/quotes.csv"  // Full path to the quotes file.
+	server       = "irc.quakenet.org:6667"                 // Hostname of the server to connect to.
+	prefix       = "!"                                     // Prefix which is used by the user to issue commands.
+	folder       = "/home/gluon/var/irc/bots/Schumacher_/" // Full path to the folder.
+	answersFile  = folder + "answers.csv"                  // Full path to the answers file.
+	betsFile     = folder + "bets.csv"                     // Full path to the bets file.
+	driversFile  = folder + "drivers.csv"                  // Full path to the drivers file.
+	eventsFile   = folder + "events.csv"                   // Full path to the events file.
+	feedsFile    = folder + "feeds.csv"                    // Full path to the feeds file.
+	usersFile    = folder + "users.csv"                    // Full path to the users file.
+	quizFile     = folder + "quiz.csv"                     // Full path to the quiz file.
+	quotesFile   = folder + "quotes.csv"                   // Full path to the quotes file.
 	quizTimeout  = 20
 	hns          = 3600000000000
 	feedInterval = 300
