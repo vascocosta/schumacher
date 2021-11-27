@@ -279,6 +279,7 @@ func tskFeeds(irccon *irc.Connection) {
 	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
 	for {
 		time.Sleep(feedInterval * time.Second)
+		start := time.Now()
 		feeds, err := readCSV(feedsFile)
 		if err != nil {
 			log.Println("tskFeeds:", err)
@@ -312,6 +313,86 @@ func tskFeeds(irccon *irc.Connection) {
 				}
 			}
 		}
+		fmt.Printf("Feed processing time: %s", time.Since(start))
+	}
+}
+
+// The tskFeeds2 function runs in the background as a goroutine polling a collection of news feeds.
+func tskFeeds2(irccon *irc.Connection) {
+	// Simple structure type used to send feed data to a go channel.
+	// It stores a key that indexes each different feed and a value.
+	// This allows the reading thread (this function) to access those two variables from the channel.
+	// The key is required so that the reading thread can update the lastTime field of each feed.
+	type FeedData struct {
+		Key   int
+		Value *gofeed.Feed
+	}
+	var timeFormat = "2006-01-02 15:04:05 +0000 UTC" // Time format string used by the time package.
+	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
+	for {
+		time.Sleep(feedInterval * time.Second)
+		start := time.Now()
+		feeds, err := readCSV(feedsFile)
+		feedDataCh := make(chan FeedData)
+		if err != nil {
+			log.Println("tskFeeds:", err)
+			continue
+		}
+		// Loop that spawns a goroutine worker thread per each feed source in the feeds CSV file.
+		// The annonymous goroutine function accepts the k and v parameters, passed as arguments.
+		// This is to avoid undesired indeterministic effects from using a closure as a goroutine.
+		// The goroutine builds a Feed type by parsing the URL field for each feed in the CSV file.
+		// A FeedData type is built and sent to the go channel to be received by the reading thread.
+		for key, value := range feeds {
+			go func(k int, v []string) {
+				fp := gofeed.NewParser()
+				feed, err := fp.ParseURL(v[1])
+				if err != nil {
+					log.Println("feed:", err)
+					return
+				}
+				feedData := FeedData{k, feed}
+				feedDataCh <- feedData
+			}(key, value)
+		}
+		// Loop that runs a select on the go channel for as long as there's data to be read or until a timeout occurs.
+		// In case feedData can be read from the communication channel, process all the feed items and show new ones.
+		// In case this thread needs to wait more than 2 minutes to receive data from the goroutines a tiemout occurs.
+		for {
+			timeout := false
+			select {
+			case feedData := <-feedDataCh:
+				for _, item := range feedData.Value.Items {
+					// The lastTime variable keeps track of when the last feed item was retrieved.
+					// If we cannot parse the time (first time) then we use timeFormat as lastTime.
+					// We could use any time in the past here, but timeFormat is already available.
+					lastTime, err := time.Parse(timeFormat, feeds[feedData.Key][3])
+					if err != nil {
+						lastTime, _ = time.Parse(timeFormat, timeFormat)
+					}
+					itemTime := item.PublishedParsed
+					// We only want to show a feed item if itemTime > lastTime.
+					// Additionally we also want to make sure the feed item is no older than 2 hours.
+					// This assures only current news when restarting the bot or changing the feeds.
+					if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
+						irccon.Privmsg(
+							feeds[feedData.Key][2],
+							fmt.Sprintf("\x02[%s] [%s]\x02", feeds[feedData.Key][0], item.Title))
+						irccon.Privmsg(feeds[feedData.Key][2], item.Link)
+						feeds[feedData.Key][3] = fmt.Sprintf("%s", itemTime)
+						writeCSV(feedsFile, feeds)
+						time.Sleep(1 * time.Second)
+					}
+				}
+			case <-time.After(120 * time.Second):
+				timeout = true
+				break // Break out of the select statement.
+			}
+			if timeout {
+				break // We need this second break when a timeout occurs to break out of the select loop.
+			}
+		}
+		fmt.Printf("Feed processing time: %s\n", time.Since(start)-2*time.Minute)
 	}
 }
 
@@ -806,6 +887,6 @@ func main() {
 		}
 	})
 	go tskEvents(irccon, channels)
-	go tskFeeds(irccon)
+	go tskFeeds2(irccon)
 	irccon.Loop()
 }
