@@ -38,17 +38,17 @@ import (
 )
 
 const (
-	server       = "irc.quakenet.org:6667"                 // Hostname of the server to connect to.
-	prefix       = "!"                                     // Prefix which is used by the user to issue commands.
-	folder       = "/home/gluon/var/irc/bots/Schumacher_/" // Full path to the folder.
-	answersFile  = folder + "answers.csv"                  // Full path to the answers file.
-	betsFile     = folder + "bets.csv"                     // Full path to the bets file.
-	driversFile  = folder + "drivers.csv"                  // Full path to the drivers file.
-	eventsFile   = folder + "events.csv"                   // Full path to the events file.
-	feedsFile    = folder + "feeds.csv"                    // Full path to the feeds file.
-	usersFile    = folder + "users.csv"                    // Full path to the users file.
-	quizFile     = folder + "quiz.csv"                     // Full path to the quiz file.
-	quotesFile   = folder + "quotes.csv"                   // Full path to the quotes file.
+	server       = "irc.quakenet.org:6667"                // Hostname of the server to connect to.
+	prefix       = "!"                                    // Prefix which is used by the user to issue commands.
+	folder       = "/home/gluon/var/irc/bots/Schumacher/" // Full path to the folder.
+	answersFile  = folder + "answers.csv"                 // Full path to the answers file.
+	betsFile     = folder + "bets.csv"                    // Full path to the bets file.
+	driversFile  = folder + "drivers.csv"                 // Full path to the drivers file.
+	eventsFile   = folder + "events.csv"                  // Full path to the events file.
+	feedsFile    = folder + "feeds.csv"                   // Full path to the feeds file.
+	usersFile    = folder + "users.csv"                   // Full path to the users file.
+	quizFile     = folder + "quiz.csv"                    // Full path to the quiz file.
+	quotesFile   = folder + "quotes.csv"                  // Full path to the quotes file.
 	quizTimeout  = 20
 	hns          = 3600000000000
 	feedInterval = 300
@@ -331,7 +331,7 @@ func tskFeeds2(irccon *irc.Connection) {
 	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
 	for {
 		time.Sleep(feedInterval * time.Second)
-		start := time.Now()
+		//start := time.Now()
 		feeds, err := readCSV(feedsFile)
 		feedDataCh := make(chan FeedData)
 		if err != nil {
@@ -384,7 +384,7 @@ func tskFeeds2(irccon *irc.Connection) {
 						time.Sleep(1 * time.Second)
 					}
 				}
-			case <-time.After(120 * time.Second):
+			case <-time.After(60 * time.Second):
 				timeout = true
 				break // Break out of the select statement.
 			}
@@ -392,7 +392,7 @@ func tskFeeds2(irccon *irc.Connection) {
 				break // We need this second break when a timeout occurs to break out of the select loop.
 			}
 		}
-		fmt.Printf("Feed processing time: %s\n", time.Since(start)-2*time.Minute)
+		//fmt.Printf("Feed processing time: %s\n", time.Since(start)-2*time.Minute)
 	}
 }
 
