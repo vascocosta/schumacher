@@ -1,5 +1,5 @@
 /*
- *  schumacher, the irc bot of the #formula1 channel at Quakenet.
+ *  schumacher, the IRC bot of the #formula1 channel at Quakenet.
  *  Copyright (C) 2021  Vasco Costa
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -446,7 +446,7 @@ func tskEvents(irccon *irc.Connection, channel string) {
 	}
 }
 
-// The help command receives an irc connection pointer, a channel and a search string.
+// The help command receives an IRC connection pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(irccon *irc.Connection, channel string, search string) {
 	help := [9]string{
@@ -471,7 +471,7 @@ func cmdHelp(irccon *irc.Connection, channel string, search string) {
 	}
 }
 
-// The standings command receives an irc connection pointer, a channel, a nick and a championship string.
+// The standings command receives an IRC connection pointer, a channel, a nick and a championship string.
 // It then queries the Ergast F1 API for either the WDC or the WCC and displays the results on the channel.
 func cmdStandings(irccon *irc.Connection, channel string, nick string, championship string) {
 	var output string
@@ -532,7 +532,7 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 	irccon.Privmsg(channel, output)
 }
 
-// The next command receives an irc connection pointer, a channel, a nick and an optional search string.
+// The next command receives an IRC connection pointer, a channel, a nick and an optional search string.
 // It then queries the events CSV file and returns which event is happening next, showing it on the channel.
 func cmdNext(irccon *irc.Connection, channel string, nick string, search string) {
 	var tz = "Europe/Berlin"
@@ -703,7 +703,11 @@ func parseCommand(message string, nick string, channel string) (command Command,
 	}
 }
 
+// The poll command receives an IRC connection pointer, an IRC channel, a [2]string channel and poll data.
+// It runs as a goroutine that makes a poll on an IRC channel using the given poll data.
+// It then waits for votes from the users and finally displays the results of the poll.
 func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData string) {
+	// Parse the poll data into a question and possible answers and then show it on the IRC channel.
 	parsed := strings.Split(pollData, ";")
 	if len(parsed) <= 1 {
 		irccon.Privmsg(channel, "Syntax: !poll question;option 1;option 2;option n")
@@ -719,46 +723,46 @@ func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData 
 	votes := make(map[string]int)
 	results := make(map[string]int)
 	var total int
+	// This is the main loop of the goroutine, which waits for answers to the poll on the "c" go channel.
+	// The answer is sent to the "c" go channel on the main goroutine, inside the "PRIVMSG" callback.
+	// Eventually it times out after pollTimeout seconds and shows the results of the poll on the IRC channel.
 	time.AfterFunc(time.Duration(pollTimeout)*time.Second, func() {
 		c <- [2]string{nick, "--TIMEOUT--"}
 	})
-	for {
-		select {
-		case answer := <-c:
-			if answer[0] == nick && answer[1] == "--TIMEOUT--" {
-				poll = false
-				irccon.Privmsg(channel, "The Poll has ended.")
-				if len(votes) > 0 {
-					time.Sleep(1 * time.Second)
-					irccon.Privmsg(channel, "Results: ")
-					for _, v := range votes {
-						results[strconv.Itoa(v)] += 1
-					}
-					for _, v := range results {
-						total += v
-					}
-					for k, v := range results {
-						index, _ := strconv.Atoi(k)
-						irccon.Privmsg(channel,
-							fmt.Sprintf("%s. %s - %.2f%% votes",
-								k,
-								parsed[index],
-								(float32(v)/float32(total))*100))
-					}
+	for answer := range c {
+		if answer[0] == nick && answer[1] == "--TIMEOUT--" {
+			poll = false
+			irccon.Privmsg(channel, "The Poll has ended.")
+			if len(votes) > 0 {
+				time.Sleep(1 * time.Second)
+				irccon.Privmsg(channel, "Results: ")
+				for _, v := range votes {
+					results[strconv.Itoa(v)] += 1
 				}
-				return
-			} else {
-				vote, err := strconv.Atoi(answer[1])
-				if err == nil && (vote > 0 && vote <= len(parsed[1:])) {
-					votes[answer[0]] = vote
+				for _, v := range results {
+					total += v
 				}
+				for k, v := range results {
+					index, _ := strconv.Atoi(k)
+					irccon.Privmsg(channel,
+						fmt.Sprintf("%s. %s - %.2f%% votes",
+							k,
+							parsed[index],
+							(float32(v)/float32(total))*100))
+				}
+			}
+			return
+		} else {
+			vote, err := strconv.Atoi(answer[1])
+			if err == nil && (vote > 0 && vote <= len(parsed[1:])) {
+				votes[answer[0]] = vote
 			}
 		}
 	}
 }
 
-// The quiz command receives an irc connection pointer, an irc channel and a [2]string channel.
-// It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
+// The quiz command receives an IRC connection pointer, an IRC channel and a [2]string channel.
+// It runs as a goroutine that opens a quiz file and asks questions on the given IRC channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
 func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number string) {
 	quiz = true
@@ -836,7 +840,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 	}
 }
 
-// The quote command receives an irc connection pointer, a channel and an arguments slice of strings.
+// The quote command receives an IRC connection pointer, a channel and an arguments slice of strings.
 // It then checks if there are arguments and displays a random quote or adds a new quote accordingly.
 func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 	// Get a collection of quotes stored as a CSV file.
@@ -872,7 +876,7 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 	}
 }
 
-// The ask command receives an irc connection pointer, a channel and an arguments slice of strings.
+// The ask command receives an IRC connection pointer, a channel and an arguments slice of strings.
 // It then checks if the user has asked a question and displays a random answer on the channel.
 func cmdAsk(irccon *irc.Connection, channel string, args []string) {
 	// Get a collection of answers stored as a CSV file.
@@ -930,11 +934,11 @@ func main() {
 			case "bet22":
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
 			case "poll":
-				if !poll {
+				if !poll && !quiz {
 					go cmdPoll(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
 			case "quiz":
-				if !quiz {
+				if !quiz && !poll {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
 			case "quote":
