@@ -49,6 +49,7 @@ const (
 	usersFile    = folder + "users.csv"                   // Full path to the users file.
 	quizFile     = folder + "quiz.csv"                    // Full path to the quiz file.
 	quotesFile   = folder + "quotes.csv"                  // Full path to the quotes file.
+	pollTimeout  = 60
 	quizTimeout  = 20
 	hns          = 3600000000000
 	feedInterval = 300
@@ -56,6 +57,7 @@ const (
 
 var nick = "Schumacher_"     // Nick to be used by the bot.
 var channels = "#motorsport" // Names of the channels to join.
+var poll bool
 var quiz bool
 
 // Type that represents an IRC command issued by the user.
@@ -701,6 +703,60 @@ func parseCommand(message string, nick string, channel string) (command Command,
 	}
 }
 
+func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData string) {
+	parsed := strings.Split(pollData, ";")
+	if len(parsed) <= 1 {
+		irccon.Privmsg(channel, "Syntax: !poll question;option 1;option 2;option n")
+		return
+	}
+	irccon.Privmsg(channel, fmt.Sprintf("Poll: %s (%d seconds to vote)", parsed[0], pollTimeout))
+	time.Sleep(1 * time.Second)
+	for k, v := range parsed[1:] {
+		irccon.Privmsg(channel, fmt.Sprintf("%d. %s", k+1, v))
+		time.Sleep(1 * time.Second)
+	}
+	poll = true
+	votes := make(map[string]int)
+	results := make(map[string]int)
+	var total int
+	time.AfterFunc(time.Duration(pollTimeout)*time.Second, func() {
+		c <- [2]string{nick, "--TIMEOUT--"}
+	})
+	for {
+		select {
+		case answer := <-c:
+			if answer[0] == nick && answer[1] == "--TIMEOUT--" {
+				poll = false
+				irccon.Privmsg(channel, "The Poll has ended.")
+				if len(votes) > 0 {
+					time.Sleep(1 * time.Second)
+					irccon.Privmsg(channel, "Results: ")
+					for _, v := range votes {
+						results[strconv.Itoa(v)] += 1
+					}
+					for _, v := range results {
+						total += v
+					}
+					for k, v := range results {
+						index, _ := strconv.Atoi(k)
+						irccon.Privmsg(channel,
+							fmt.Sprintf("%s. %s - %.2f%% votes",
+								k,
+								parsed[index],
+								(float32(v)/float32(total))*100))
+					}
+				}
+				return
+			} else {
+				vote, err := strconv.Atoi(answer[1])
+				if err == nil && (vote > 0 && vote <= len(parsed[1:])) {
+					votes[answer[0]] = vote
+				}
+			}
+		}
+	}
+}
+
 // The quiz command receives an irc connection pointer, an irc channel and a [2]string channel.
 // It runs as a goroutine that opens a quiz file and asks questions on the given irc channel.
 // It then waits for answers to classify as correct or wrong or times out after a while.
@@ -860,7 +916,7 @@ func main() {
 		m := event.Message()
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
-			if quiz {
+			if poll || quiz {
 				c <- [2]string{event.Nick, event.Message()}
 			}
 		} else {
@@ -873,6 +929,10 @@ func main() {
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
 			case "bet22":
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
+			case "poll":
+				if !poll {
+					go cmdPoll(irccon, command.Channel, c, strings.Join(command.Args, " "))
+				}
 			case "quiz":
 				if !quiz {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
