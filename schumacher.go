@@ -59,6 +59,7 @@ var nick = "Schumacher_"     // Nick to be used by the bot.
 var channels = "#motorsport" // Names of the channels to join.
 var poll bool
 var quiz bool
+var activeChannel string
 
 // Type that represents an IRC command issued by the user.
 type Command struct {
@@ -720,6 +721,7 @@ func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData 
 		time.Sleep(1 * time.Second)
 	}
 	poll = true
+	activeChannel = channel
 	votes := make(map[string]int)
 	results := make(map[string]int)
 	var total int
@@ -732,6 +734,7 @@ func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData 
 	for answer := range c {
 		if answer[0] == nick && answer[1] == "--TIMEOUT--" {
 			poll = false
+			activeChannel = ""
 			irccon.Privmsg(channel, "The Poll has ended.")
 			if len(votes) > 0 {
 				time.Sleep(1 * time.Second)
@@ -766,6 +769,7 @@ func cmdPoll(irccon *irc.Connection, channel string, c chan [2]string, pollData 
 // It then waits for answers to classify as correct or wrong or times out after a while.
 func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number string) {
 	quiz = true
+	activeChannel = channel
 	score := make(map[string]int)
 	n, err := strconv.Atoi(number)
 	if err != nil || (n <= 0 || n > 10) {
@@ -775,6 +779,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 	if err != nil {
 		irccon.Privmsg(channel, "Error reading questions.")
 		log.Println("cmdQuiz:", err)
+		activeChannel = ""
 		return
 	}
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
@@ -824,6 +829,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 	// Finally we use sort.Reverse to sort by highest score and show the results.
 	timer.Stop()
 	quiz = false
+	activeChannel = ""
 	irccon.Privmsg(channel, "The quiz is over!")
 	time.Sleep(1 * time.Second)
 	irccon.Privmsg(channel, "Score:")
@@ -921,7 +927,9 @@ func main() {
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
 			if poll || quiz {
-				c <- [2]string{event.Nick, event.Message()}
+				if activeChannel == event.Arguments[0] {
+					c <- [2]string{event.Nick, event.Message()}
+				}
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
