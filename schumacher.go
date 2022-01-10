@@ -267,7 +267,7 @@ func findNext(category string, session string) (event []string, err error) {
 		}
 		delta := time.Until(t)
 		if delta >= 0 {
-			event = []string{e[0], e[1], e[2], e[3]}
+			event = []string{e[0], e[1], e[2], e[3], e[4]}
 			return event, nil
 		}
 	}
@@ -399,7 +399,7 @@ func tskFeeds2(irccon *irc.Connection) {
 }
 
 // The tskEvents function runs in the background as a goroutine polling for new events.
-func tskEvents(irccon *irc.Connection, channel string) {
+func tskEvents(irccon *irc.Connection) {
 	var announced [5]string                    // Small buffer to hold recently announced events.
 	var index = 0                              // Index used to reference the buffer above.
 	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
@@ -435,7 +435,7 @@ func tskEvents(irccon *irc.Connection, channel string) {
 		} else {
 			if !contains(announced[0:5], event[0]+" "+event[1]+" "+event[2]) {
 				irccon.Privmsg(
-					channel,
+					event[4],
 					fmt.Sprintf(
 						"\x034Starting in 5 minutes:\x03 \x02%s %s %s\x02",
 						event[0], event[1], event[2]))
@@ -950,7 +950,7 @@ func main() {
 			}
 		}
 	})
-	go tskEvents(irccon, channels)
+	go tskEvents(irccon)
 	go tskFeeds2(irccon)
 	irccon.Loop()
 }
