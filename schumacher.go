@@ -47,6 +47,7 @@ const (
 	eventsFile   = folder + "events.csv"                  // Full path to the events file.
 	feedsFile    = folder + "feeds.csv"                   // Full path to the feeds file.
 	usersFile    = folder + "users.csv"                   // Full path to the users file.
+	resultsFile  = folder + "results.csv"                 // Full path to the results file.
 	quizFile     = folder + "quiz.csv"                    // Full path to the quiz file.
 	quotesFile   = folder + "quotes.csv"                  // Full path to the quotes file.
 	pollTimeout  = 60
@@ -57,6 +58,7 @@ const (
 
 var nick = "Schumacher_"     // Nick to be used by the bot.
 var channels = "#motorsport" // Names of the channels to join.
+var adminNick = "gluon"      // Nick used by the admin of the bot.
 var poll bool
 var quiz bool
 var activeChannel string
@@ -169,6 +171,15 @@ func (s ScoreList) Less(i, j int) bool {
 func contains(s []string, str string) bool {
 	for _, v := range s {
 		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
+func isUser(nick string, users [][]string) bool {
+	for _, user := range users {
+		if strings.ToLower(nick) == strings.ToLower(user[0]) {
 			return true
 		}
 	}
@@ -616,6 +627,16 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	var correct int
 	var bets [][]string
 	var update bool
+	users, err := readCSV(usersFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting users.")
+		log.Println("cmdBet:", err)
+		return
+	}
+	if !isUser(nick, users) {
+		irccon.Privmsg(channel, "You're not a registered user. Ask gluon for a bot account.")
+		return
+	}
 	event, err := findNext("[formula 1]", "race")
 	if err != nil {
 		irccon.Privmsg(channel, "Error finding next race.")
@@ -687,6 +708,42 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		return
 	}
 	irccon.Privmsg(channel, "Your bet for the "+event[1]+" was successfully updated.")
+}
+
+func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
+	if strings.ToLower(nick) != strings.ToLower(adminNick) {
+		irccon.Privmsg(channel, "Only " + adminNick + " can use this command.")
+		return
+	}
+	results, err := readCSV(resultsFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting results.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	bets, err := readCSV(betsFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting bets.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	for i, bet := range bets {
+		score := 0
+		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
+			if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
+				score = score + 10
+			}
+			if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
+				score = score + 10
+			}
+			if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
+				score = score + 10
+			}
+			bets[i][5] = strconv.Itoa(score)
+		}
+	}
+	writeCSV(betsFile, bets)
+	irccon.Privmsg(channel, results[0][0] + " bets processed.")
 }
 
 // The parsecmd function takes a message string and breaks it down into a Command.
@@ -939,12 +996,14 @@ func main() {
 				cmdHelp(irccon, command.Channel, strings.Join(command.Args, ""))
 			case "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
-			case "bet22":
+			case "bet":
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
 			case "poll":
 				if !poll && !quiz {
 					go cmdPoll(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
+			case "processbets":
+				cmdProcessBets(irccon, command.Channel, command.Nick)
 			case "quiz":
 				if !quiz && !poll {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
