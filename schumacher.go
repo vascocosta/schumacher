@@ -639,7 +639,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	}
 	event, err := findNext("[formula 1]", "race")
 	if err != nil {
-		irccon.Privmsg(channel, "Error finding next race.")
+		irccon.Privmsg(channel, "Bets are closed.")
 		log.Println("cmdBet:", err)
 		return
 	}
@@ -712,7 +712,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 
 func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 	if strings.ToLower(nick) != strings.ToLower(adminNick) {
-		irccon.Privmsg(channel, "Only " + adminNick + " can use this command.")
+		irccon.Privmsg(channel, "Only "+adminNick+" can use this command.")
 		return
 	}
 	results, err := readCSV(resultsFile)
@@ -742,8 +742,13 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 			bets[i][5] = strconv.Itoa(score)
 		}
 	}
-	writeCSV(betsFile, bets)
-	irccon.Privmsg(channel, results[0][0] + " bets processed.")
+	err = writeCSV(betsFile, bets)
+	if err != nil {
+		irccon.Privmsg(channel, "Error processing bets.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	irccon.Privmsg(channel, results[0][0]+" bets processed.")
 }
 
 // The parsecmd function takes a message string and breaks it down into a Command.
