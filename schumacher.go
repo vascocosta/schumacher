@@ -727,24 +727,47 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		log.Println("cmdProcessBets:", err)
 		return
 	}
+	users, err := readCSV(usersFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting users.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
 	for i, bet := range bets {
 		score := 0
 		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
 			if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
-				score = score + 10
+				score += 10
 			}
 			if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
-				score = score + 10
+				score += 10
 			}
 			if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
-				score = score + 10
+				score += 10
 			}
 			bets[i][5] = strconv.Itoa(score)
+			for j, user := range users {
+				if strings.ToLower(user[0]) == strings.ToLower(bet[1]) {
+					currentScore, err := strconv.Atoi(users[j][2])
+					if err != nil {
+						irccon.Privmsg(channel, "Error getting current score.")
+						log.Println("cmdProcessBets:", err)
+						return
+					}
+					users[j][2] = strconv.Itoa(currentScore + score)
+				}
+			}
+		}
+		err = writeCSV(usersFile, users)
+		if err != nil {
+			irccon.Privmsg(channel, "Error storing user points.")
+			log.Println("cmdProcessBets:", err)
+			return
 		}
 	}
 	err = writeCSV(betsFile, bets)
 	if err != nil {
-		irccon.Privmsg(channel, "Error processing bets.")
+		irccon.Privmsg(channel, "Error storing bet points.")
 		log.Println("cmdProcessBets:", err)
 		return
 	}
