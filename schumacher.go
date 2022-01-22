@@ -31,6 +31,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -492,9 +493,11 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 	if strings.ToLower(championship) == "constructor" || strings.ToLower(championship) == "constructors" {
 		championship = "constructor"
 		url += "constructorStandings.json"
-	} else {
+	} else if strings.ToLower(championship) == "driver" || strings.ToLower(championship) == "drivers" {
 		championship = "driver"
 		url += "driverStandings.json"
+	} else {
+		championship = "bet"
 	}
 	// Get the raw data through HTTP.
 	data, err := getURL(url)
@@ -506,6 +509,34 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 	// Display the results on the channel, depending on which kind of championship was requested.
 	// The API returns in JSON format which is decoded to either a DStandings or CStandings strut.
 	switch strings.ToLower(championship) {
+	case "bet", "bets":
+		users, err := readCSV(usersFile)
+		if err != nil {
+			irccon.Privmsg(channel, "Error getting users.")
+			log.Println("cmdStandings:", err)
+			return
+		}
+		scoreList := make(ScoreList, len(users))
+		for _, user := range users {
+			points, _ := strconv.Atoi(user[2])
+			if points > 0 {
+				re, err := regexp.Compile("[^a-zA-Z0-9]+")
+				if err != nil {
+					irccon.Privmsg(channel, "Error getting standings.")
+					log.Println("cmdStandings:", err)
+					return
+				}
+				scoreList = append(scoreList, Score{strings.ToUpper(re.ReplaceAllString(user[0], "")[0:3]), points})
+			}
+		}
+		sort.Sort(sort.Reverse(scoreList))
+		for i, score := range scoreList {
+			if score.Points > 0 {
+				output += fmt.Sprintf("%d. %s %d | ", i+1, score.Nick, score.Points)
+			}
+		}
+		irccon.Privmsg(channel, output[:len(output)-3])
+		return
 	case "driver", "drivers":
 		var standings DStandings
 		err = json.Unmarshal(data, &standings)
@@ -721,6 +752,10 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		log.Println("cmdProcessBets:", err)
 		return
 	}
+	if results[0][0] == results[0][4] {
+		irccon.Privmsg(channel, results[0][0]+" bets have already been processed in the past.")
+		return
+	}
 	bets, err := readCSV(betsFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting bets.")
@@ -771,7 +806,14 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		log.Println("cmdProcessBets:", err)
 		return
 	}
-	irccon.Privmsg(channel, results[0][0]+" bets processed.")
+	results[0][4] = results[0][0]
+	err = writeCSV(resultsFile, results)
+	if err != nil {
+		irccon.Privmsg(channel, "Error storing last processed bet..")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	irccon.Privmsg(channel, results[0][0]+" bets successfully processed.")
 }
 
 // The parsecmd function takes a message string and breaks it down into a Command.
@@ -1038,6 +1080,8 @@ func main() {
 				}
 			case "quote":
 				cmdQuote(irccon, command.Channel, command.Args)
+			case "wbc":
+				go cmdStandings(irccon, command.Channel, command.Nick, "bet")
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":
