@@ -19,6 +19,7 @@
 package main
 
 import (
+	"github.com/gocolly/colly"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -29,6 +30,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"mvdan.cc/xurls/v2"
 	"net/http"
 	"os"
 	"regexp"
@@ -1034,6 +1036,16 @@ func cmdAsk(irccon *irc.Connection, channel string, args []string) {
 	}
 }
 
+func getHTMLTitle(irccon *irc.Connection, channel string,  message string) {
+	rxStrict := xurls.Strict()
+	url := rxStrict.FindString(message)
+	c := colly.NewCollector()
+	c.OnHTML("title", func(e *colly.HTMLElement) {
+		irccon.Privmsg(channel, "Title: "+e.Text)
+	})
+	c.Visit(url)
+}
+
 func main() {
 	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
 	flag.StringVar(&channels, "channels", "#motorsport", "Names of the channels to join.")
@@ -1057,6 +1069,8 @@ func main() {
 				if activeChannel == event.Arguments[0] {
 					c <- [2]string{event.Nick, event.Message()}
 				}
+			} else if strings.Contains(strings.ToLower(event.Message()), "http") {
+				go getHTMLTitle(irccon, event.Arguments[0], event.Message())
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
