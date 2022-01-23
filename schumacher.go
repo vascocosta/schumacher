@@ -19,12 +19,12 @@
 package main
 
 import (
-	"github.com/gocolly/colly"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/gocolly/colly"
 	"github.com/mmcdole/gofeed"
 	"github.com/thoj/go-ircevent"
 	"io/ioutil"
@@ -1036,7 +1036,7 @@ func cmdAsk(irccon *irc.Connection, channel string, args []string) {
 	}
 }
 
-func getHTMLTitle(irccon *irc.Connection, channel string,  message string) {
+func getHTMLTitle(irccon *irc.Connection, channel string, message string) {
 	rxStrict := xurls.Strict()
 	url := rxStrict.FindString(message)
 	c := colly.NewCollector()
