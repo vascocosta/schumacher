@@ -1,6 +1,6 @@
 /*
  *  schumacher, the IRC bot of the #formula1 channel at Quakenet.
- *  Copyright (C) 2021  Vasco Costa
+ *  Copyright (C) 2021-2022  Vasco Costa (gluon)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,44 +19,20 @@
 package main
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/gocolly/colly"
-	"github.com/mmcdole/gofeed"
 	"github.com/thoj/go-ircevent"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"mvdan.cc/xurls/v2"
-	"net/http"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-)
-
-const (
-	server       = "irc.quakenet.org:6667"                // Hostname of the server to connect to.
-	prefix       = "!"                                    // Prefix which is used by the user to issue commands.
-	folder       = "/home/gluon/var/irc/bots/Schumacher/" // Full path to the folder.
-	answersFile  = folder + "answers.csv"                 // Full path to the answers file.
-	betsFile     = folder + "bets.csv"                    // Full path to the bets file.
-	driversFile  = folder + "drivers.csv"                 // Full path to the drivers file.
-	eventsFile   = folder + "events.csv"                  // Full path to the events file.
-	feedsFile    = folder + "feeds.csv"                   // Full path to the feeds file.
-	usersFile    = folder + "users.csv"                   // Full path to the users file.
-	resultsFile  = folder + "results.csv"                 // Full path to the results file.
-	quizFile     = folder + "quiz.csv"                    // Full path to the quiz file.
-	quotesFile   = folder + "quotes.csv"                  // Full path to the quotes file.
-	pollTimeout  = 60
-	quizTimeout  = 20
-	hns          = 3600000000000
-	feedInterval = 300
 )
 
 var nick = "Schumacher_"     // Nick to be used by the bot.
@@ -65,179 +41,6 @@ var adminNick = "gluon"      // Nick used by the admin of the bot.
 var poll bool
 var quiz bool
 var activeChannel string
-
-// Type that represents an IRC command issued by the user.
-type Command struct {
-	Name    string
-	Args    []string
-	Nick    string
-	Channel string
-}
-
-// Type that represents the F1 World Driver Championship standings.
-type DStandings struct {
-	MRData struct {
-		XMLNS          string `json:"xmlns"`
-		Series         string `json:"series"`
-		URL            string `json:"url"`
-		Limit          string `json:"limit"`
-		Offset         string `json:"offset"`
-		Total          string `json:"total"`
-		StandingsTable struct {
-			Season         string `json:"season"`
-			StandingsLists []struct {
-				Season          string `json:"season"`
-				Round           string `json:"round"`
-				DriverStandings []struct {
-					Position     string `json:"position"`
-					PositionText string `json:"positionText"`
-					Points       string `json:"points"`
-					Wins         string `json:"wins"`
-					Driver       struct {
-						DriverID        string `json:"driverId"`
-						PermanentNumber string `json:"permanentNumber"`
-						Code            string `json:"code"`
-						URL             string `json:"url"`
-						GivenName       string `json:"givenName"`
-						FamilyName      string `json:"familyName"`
-						DateOfBirth     string `json:"dateOfBirth"`
-						Nationality     string `json:"nationality"`
-					}
-					Constructors []struct {
-						ConstructorID string `json:"constructorId"`
-						URL           string `json:"url"`
-						Name          string `json:"name"`
-						Nationality   string `json:"nationality"`
-					}
-				}
-			}
-		}
-	}
-}
-
-// Type that represents the F1 World Constructor Championship standings.
-type CStandings struct {
-	MRData struct {
-		XMLNS          string `json:"xmlns"`
-		Series         string `json:"series"`
-		URL            string `json:"url"`
-		Limit          string `json:"limit"`
-		Offset         string `json:"offset"`
-		Total          string `json:"total"`
-		StandingsTable struct {
-			Season         string `json:"season"`
-			StandingsLists []struct {
-				Season               string `json:"season"`
-				Round                string `json:"round"`
-				ConstructorStandings []struct {
-					Position     string `json:"position"`
-					PositionText string `json:"positionText"`
-					Points       string `json:"points"`
-					Wins         string `json:"wins"`
-					Constructor  struct {
-						ConstructorID string `json:"constructorId"`
-						URL           string `json:"url"`
-						Name          string `json:"name"`
-						Nationality   string `json:"nationality"`
-					}
-				}
-			}
-		}
-	}
-}
-
-// Type that represents a quiz score.
-type Score struct {
-	Nick   string
-	Points int
-}
-
-// Type that represents a list of scores.
-// This type is needed so that we can sort the score by points (value).
-// Internally score is a map[string]int, but fmt only sorts maps by key.
-// We use sort.Sort() in cmdQuiz which requires ScoreList to implement the sort interface.
-type ScoreList []Score
-
-func (s ScoreList) Len() int {
-	return len(s)
-}
-
-func (s ScoreList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s ScoreList) Less(i, j int) bool {
-	return s[i].Points < s[j].Points
-}
-
-// Small utility function that returns weather a slice of strings contains a given string.
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-func isUser(nick string, users [][]string) bool {
-	for _, user := range users {
-		if strings.ToLower(nick) == strings.ToLower(user[0]) {
-			return true
-		}
-	}
-	return false
-}
-
-// Small utility function that reads a CSV file and returns the data as slice of slice of strings.
-func readCSV(path string) (data [][]string, err error) {
-	f, err := os.Open(path)
-	defer f.Close()
-	if err != nil {
-		err = errors.New("Error opening CSV file: " + path + ".")
-		return
-	}
-	r := csv.NewReader(f)
-	data, err = r.ReadAll()
-	if err != nil {
-		err = errors.New("Error reading data from: " + path + ".")
-		return
-	}
-	return
-}
-
-// Small utility function that writes a slice of slice of strings to a CSV file.
-func writeCSV(path string, data [][]string) (err error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
-	defer f.Close()
-	if err != nil {
-		err = errors.New("Error opening CSV file: " + path + ".")
-		return
-	}
-	w := csv.NewWriter(f)
-	err = w.WriteAll(data)
-	if err != nil {
-		err = errors.New("Error writing data to: " + path + ".")
-		return
-	}
-	return
-}
-
-// Small utility function that fetches and returns raw data from an URL using HTTP.
-func getURL(url string) (data []byte, err error) {
-	res, err := http.Get(url)
-	defer res.Body.Close()
-	if err != nil {
-		err = errors.New("Error getting HTTP data.")
-		return
-	}
-	data, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		err = errors.New("Error getting HTTP data.")
-		return
-	}
-	return
-}
 
 // The findNext function receives a category and session and returns the chronologically next event matching that criteria.
 func findNext(category string, session string) (event []string, err error) {
@@ -288,177 +91,6 @@ func findNext(category string, session string) (event []string, err error) {
 	}
 	err = errors.New("No event found.")
 	return
-}
-
-// The tskFeeds function runs in the background as a goroutine polling a collection of news feeds.
-func tskFeeds(irccon *irc.Connection) {
-	var timeFormat = "2006-01-02 15:04:05 +0000 UTC" // Time format string used by the time package.
-	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
-	for {
-		time.Sleep(feedInterval * time.Second)
-		start := time.Now()
-		feeds, err := readCSV(feedsFile)
-		if err != nil {
-			log.Println("tskFeeds:", err)
-			continue
-		}
-		for key, value := range feeds {
-			fp := gofeed.NewParser()
-			feed, err := fp.ParseURL(value[1])
-			if err != nil {
-				log.Println("feed:", err)
-				continue
-			}
-			for _, item := range feed.Items {
-				// The lastTime variable keeps track of when the last feed item was retrieved.
-				// If we cannot parse the time (first time) then we use timeFormat as lastTime.
-				// We could use any time in the past here, but timeFormat is already available.
-				lastTime, err := time.Parse(timeFormat, feeds[key][3])
-				if err != nil {
-					lastTime, _ = time.Parse(timeFormat, timeFormat)
-				}
-				itemTime := item.PublishedParsed
-				// We only want to show a feed item if itemTime > lastTime.
-				// Additionally we also want to make sure the feed item is no older than 2 hours.
-				// This assures only current news when restarting the bot or changing the feeds.
-				if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
-					irccon.Privmsg(feeds[key][2], fmt.Sprintf("\x02[%s] [%s]\x02", feeds[key][0], item.Title))
-					irccon.Privmsg(feeds[key][2], item.Link)
-					feeds[key][3] = fmt.Sprintf("%s", itemTime)
-					writeCSV(feedsFile, feeds)
-					time.Sleep(1 * time.Second)
-				}
-			}
-		}
-		fmt.Printf("Feed processing time: %s", time.Since(start))
-	}
-}
-
-// The tskFeeds2 function runs in the background as a goroutine polling a collection of news feeds.
-func tskFeeds2(irccon *irc.Connection) {
-	// Simple structure type used to send feed data to a go channel.
-	// It stores a key that indexes each different feed and a value.
-	// This allows the reading thread (this function) to access those two variables from the channel.
-	// The key is required so that the reading thread can update the lastTime field of each feed.
-	type FeedData struct {
-		Key   int
-		Value *gofeed.Feed
-	}
-	var timeFormat = "2006-01-02 15:04:05 +0000 UTC" // Time format string used by the time package.
-	// Loop that runs every feedInterval seconds opening the feeds CSV file and fetching news.
-	for {
-		time.Sleep(feedInterval * time.Second)
-		//start := time.Now()
-		feeds, err := readCSV(feedsFile)
-		feedDataCh := make(chan FeedData)
-		if err != nil {
-			log.Println("tskFeeds:", err)
-			continue
-		}
-		// Loop that spawns a goroutine worker thread per each feed source in the feeds CSV file.
-		// The annonymous goroutine function accepts the k and v parameters, passed as arguments.
-		// This is to avoid undesired indeterministic effects from using a closure as a goroutine.
-		// The goroutine builds a Feed type by parsing the URL field for each feed in the CSV file.
-		// A FeedData type is built and sent to the go channel to be received by the reading thread.
-		for key, value := range feeds {
-			go func(k int, v []string) {
-				fp := gofeed.NewParser()
-				feed, err := fp.ParseURL(v[1])
-				if err != nil {
-					log.Println("feed:", err)
-					return
-				}
-				feedData := FeedData{k, feed}
-				feedDataCh <- feedData
-			}(key, value)
-		}
-		// Loop that runs a select on the go channel for as long as there's data to be read or until a timeout occurs.
-		// In case feedData can be read from the communication channel, process all the feed items and show new ones.
-		// In case this thread needs to wait more than 2 minutes to receive data from the goroutines a tiemout occurs.
-		for {
-			timeout := false
-			select {
-			case feedData := <-feedDataCh:
-				for _, item := range feedData.Value.Items {
-					// The lastTime variable keeps track of when the last feed item was retrieved.
-					// If we cannot parse the time (first time) then we use timeFormat as lastTime.
-					// We could use any time in the past here, but timeFormat is already available.
-					lastTime, err := time.Parse(timeFormat, feeds[feedData.Key][3])
-					if err != nil {
-						lastTime, _ = time.Parse(timeFormat, timeFormat)
-					}
-					itemTime := item.PublishedParsed
-					// We only want to show a feed item if itemTime > lastTime.
-					// Additionally we also want to make sure the feed item is no older than 2 hours.
-					// This assures only current news when restarting the bot or changing the feeds.
-					if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
-						irccon.Privmsg(
-							feeds[feedData.Key][2],
-							fmt.Sprintf("\x02[%s] [%s]\x02", feeds[feedData.Key][0], item.Title))
-						irccon.Privmsg(feeds[feedData.Key][2], item.Link)
-						feeds[feedData.Key][3] = fmt.Sprintf("%s", itemTime)
-						writeCSV(feedsFile, feeds)
-						time.Sleep(1 * time.Second)
-					}
-				}
-			case <-time.After(60 * time.Second):
-				timeout = true
-				break // Break out of the select statement.
-			}
-			if timeout {
-				break // We need this second break when a timeout occurs to break out of the select loop.
-			}
-		}
-		//fmt.Printf("Feed processing time: %s\n", time.Since(start)-2*time.Minute)
-	}
-}
-
-// The tskEvents function runs in the background as a goroutine polling for new events.
-func tskEvents(irccon *irc.Connection) {
-	var announced [5]string                    // Small buffer to hold recently announced events.
-	var index = 0                              // Index used to reference the buffer above.
-	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
-	// This is a separate thread, we must check if the main one is connected to IRC.
-	// While not connected to IRC sleep for 10 seconds before trying again.
-	// If eventually a connection is established we jump out of this loop and resume.
-	for !irccon.Connected() {
-		log.Println("tskEvents: Waiting for an IRC connection.")
-		time.Sleep(10 * time.Second)
-	}
-	// Loop that runs every minute opening the events CSV file and querying any event that starts within 5 minutes.
-	for {
-		time.Sleep(60 * time.Second)
-		event, err := findNext("any", "any")
-		if err != nil {
-			log.Println("tskEvents:", err)
-			continue
-		}
-		t, err := time.Parse(timeFormat, event[3])
-		if err != nil {
-			log.Println("tskEvents: Error parsing time.")
-			continue
-		}
-		delta := time.Until(t)
-		if delta.Minutes() > 5 {
-			continue
-		}
-		// If the index becomes greather than what the buffer can hold, we reset it.
-		// Otherwise we check if the announced buffer already contains the next event.
-		// If it doesn't, the event is announced on the channel and added to the buffer.
-		if index > 4 {
-			index = 0
-		} else {
-			if !contains(announced[0:5], event[0]+" "+event[1]+" "+event[2]) {
-				irccon.Privmsg(
-					event[4],
-					fmt.Sprintf(
-						"\x034Starting in 5 minutes:\x03 \x02%s %s %s\x02",
-						event[0], event[1], event[2]))
-				announced[index] = event[0] + " " + event[1] + " " + event[2]
-				index++
-			}
-		}
-	}
 }
 
 // The help command receives an IRC connection pointer, a channel and a search string.
@@ -816,21 +448,6 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		return
 	}
 	irccon.Privmsg(channel, results[0][0]+" bets successfully processed.")
-}
-
-// The parsecmd function takes a message string and breaks it down into a Command.
-func parseCommand(message string, nick string, channel string) (command Command, err error) {
-	if len(message) > 1 && strings.HasPrefix(message, prefix) {
-		split := strings.Split(message, " ")
-		command.Name = split[0][1:]
-		command.Args = split[1:]
-		command.Nick = nick
-		command.Channel = channel
-		return
-	} else {
-		err = errors.New("parsecmd: Invalid command.")
-		return
-	}
 }
 
 // The poll command receives an IRC connection pointer, an IRC channel, a [2]string channel and poll data.
