@@ -98,15 +98,15 @@ func getURL(url string) (data []byte, err error) {
 
 // The parsecmd function takes a message string and breaks it down into a Command.
 func parseCommand(message string, nick string, channel string) (command Command, err error) {
-        if len(message) > 1 && strings.HasPrefix(message, prefix) {
-                split := strings.Split(message, " ")
-                command.Name = split[0][1:]
-                command.Args = split[1:]
-                command.Nick = nick
-                command.Channel = channel
-                return
-        } else {
-                err = errors.New("parsecmd: Invalid command.")
-                return
-        }
+	if len(message) > 1 && strings.HasPrefix(message, prefix) {
+		split := strings.Split(message, " ")
+		command.Name = split[0][1:]
+		command.Args = split[1:]
+		command.Nick = nick
+		command.Channel = channel
+		return
+	} else {
+		err = errors.New("parsecmd: Invalid command.")
+		return
+	}
 }

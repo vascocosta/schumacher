@@ -20,9 +20,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/gocolly/colly"
 	"github.com/mmcdole/gofeed"
 	"github.com/thoj/go-ircevent"
 	"log"
+	"mvdan.cc/xurls/v2"
 	"time"
 )
 
@@ -195,4 +197,15 @@ func tskEvents(irccon *irc.Connection) {
 			}
 		}
 	}
+}
+
+// The tskHTMLTitle function runs in the background as a goroutine that extracts HTML titles from links.
+func tskHTMLTitle(irccon *irc.Connection, channel string, message string) {
+	rxStrict := xurls.Strict()
+	url := rxStrict.FindString(message)
+	c := colly.NewCollector()
+	c.OnHTML("title", func(e *colly.HTMLElement) {
+		irccon.Privmsg(channel, "Title: "+e.Text)
+	})
+	c.Visit(url)
 }
