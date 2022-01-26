@@ -238,7 +238,14 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 			event, err = findNext("["+search+"]", "any")
 		}
 	} else {
-		event, err = findNext("any", "any")
+		switch channel {
+		case "#formula1":
+			event, err = findNext("[Formula 1]", "any")
+		case "#geeks":
+			event, err = findNext("[Space]", "any")
+		default:
+			event, err = findNext("any", "any")
+		}
 	}
 	if err != nil {
 		irccon.Privmsg(channel, "No event found.")
