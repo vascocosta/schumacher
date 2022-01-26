@@ -60,27 +60,27 @@ func main() {
 			}
 		} else {
 			switch strings.ToLower(command.Name) {
-			case "ask":
+			case "a", "ask":
 				cmdAsk(irccon, command.Channel, command.Args)
-			case "commands", "help":
+			case "c", "h", "commands", "help":
 				cmdHelp(irccon, command.Channel, strings.Join(command.Args, ""))
-			case "next":
+			case "n", "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
-			case "bet":
+			case "b", "bet":
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
-			case "poll":
+			case "p", "poll":
 				if !poll && !quiz {
 					go cmdPoll(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
-			case "processbets":
+			case "pb", "processbets":
 				cmdProcessBets(irccon, command.Channel, command.Nick)
-			case "quiz":
+			case "qz", "quiz":
 				if !quiz && !poll {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
-			case "quote":
+			case "q", "quote":
 				cmdQuote(irccon, command.Channel, command.Args)
-			case "wbc":
+			case "wbc", "points":
 				go cmdStandings(irccon, command.Channel, command.Nick, "bet")
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
