@@ -202,14 +202,14 @@ func tskEvents(irccon *irc.Connection) {
 				}
 				var mentions string
 				for _, user := range users {
-					channels := strings.Split(user[3], " ")
+					channels := strings.Split(user[3], ":")
 					if contains(channels, event[4]) {
 						mentions += user[0] + " "
 					}
 				}
 				if mentions != "" {
 					irccon.Privmsg(event[4], mentions)
-					irccon.Privmsg(event[4], "Sorry to use you as beta testers. Soon you'll be able to use !notify <on/off>.")
+					irccon.Privmsg(event[4], "Use !notify off to stop getting mentions for events on this channel.")
 				}
 			}
 		}

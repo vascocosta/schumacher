@@ -649,3 +649,60 @@ func cmdAsk(irccon *irc.Connection, channel string, args []string) {
 		irccon.Privmsg(channel, "Usage: !ask <question>")
 	}
 }
+
+// The notify command receives an IRC connection pointer, a channel, a nick and an arguments slice of strings.
+// It then enables or disables notifications for the current channel's events if the argument is on or off.
+func cmdNotify(irccon *irc.Connection, channel string, nick string, args []string) {
+	users, err := readCSV(usersFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting users.")
+		log.Println("tksEvents:", err)
+		return
+	}
+	if len(args) == 1 {
+		if strings.ToLower(args[0]) == "on" {
+			for i, user := range users {
+				if strings.ToLower(user[0]) == nick {
+					channels := strings.Split(user[3], ":")
+					if !contains(channels, channel) {
+						channels = append(channels, channel)
+						users[i][3] = strings.Trim(strings.Join(channels, ":"), ":")
+						err = writeCSV(usersFile, users)
+						if err != nil {
+							irccon.Privmsg(channel, "Error storing notifications.")
+							log.Println("cmdNotify:", err)
+							return
+						}
+					}
+					irccon.Privmsg(channel, "Notifications updated. Get mentions for events on: "+users[i][3])
+				}
+			}
+		} else if strings.ToLower(args[0]) == "off" {
+			for i, user := range users {
+				if strings.ToLower(user[0]) == nick {
+					channels := strings.Split(user[3], ":")
+					var updatedChannels string
+					if contains(channels, channel) {
+						for _, v := range channels {
+							if v != channel {
+								updatedChannels += v+":"
+							}
+						}
+						users[i][3] = strings.Trim(updatedChannels, ":")
+						err = writeCSV(usersFile, users)
+						if err != nil {
+							irccon.Privmsg(channel, "Error storing notifications.")
+							log.Println("cmdNotify:", err)
+							return
+						}
+					}
+					irccon.Privmsg(channel, "Notifications updated. Get mentions for events on: "+users[i][3])
+				}
+			}
+		} else {
+			irccon.Privmsg(channel, "Usage: !notifiy <on/off>")
+		}
+	} else {
+		irccon.Privmsg(channel, "Usage: !notify <on/off>")
+	}
+}

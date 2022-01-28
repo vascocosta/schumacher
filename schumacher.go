@@ -66,6 +66,8 @@ func main() {
 				cmdHelp(irccon, command.Channel, strings.Join(command.Args, ""))
 			case "n", "next":
 				cmdNext(irccon, command.Channel, command.Nick, strings.Join(command.Args, " "))
+			case "ny", "notify":
+				cmdNotify(irccon, command.Channel, command.Nick, command.Args)
 			case "b", "bet":
 				cmdBet(irccon, command.Channel, command.Nick, command.Args)
 			case "p", "poll":

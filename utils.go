@@ -65,7 +65,7 @@ func readCSV(path string) (data [][]string, err error) {
 
 // Small utility function that writes a slice of slice of strings to a CSV file.
 func writeCSV(path string, data [][]string) (err error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	defer f.Close()
 	if err != nil {
 		err = errors.New("Error opening CSV file: " + path + ".")
