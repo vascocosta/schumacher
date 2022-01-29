@@ -195,6 +195,9 @@ func tskEvents(irccon *irc.Connection) {
 						event[0], event[1], event[2]))
 				announced[index] = event[0] + " " + event[1] + " " + event[2]
 				index++
+				if event[5] != "" {
+					irccon.Privmsg(event[4], "Event link: "+event[5])
+				}
 				users, err := readCSV(usersFile)
 				if err != nil {
 					log.Println("tksEvents:", err)
