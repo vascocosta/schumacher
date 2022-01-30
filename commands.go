@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	owm "github.com/briandowns/openweathermap"
 	"github.com/thoj/go-ircevent"
 	"log"
 	"math/rand"
@@ -656,7 +657,7 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 	users, err := readCSV(usersFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting users.")
-		log.Println("tksEvents:", err)
+		log.Println("cmdNotify:", err)
 		return
 	}
 	if len(args) == 1 {
@@ -685,7 +686,7 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 					if contains(channels, channel) {
 						for _, v := range channels {
 							if v != channel {
-								updatedChannels += v+":"
+								updatedChannels += v + ":"
 							}
 						}
 						users[i][3] = strings.Trim(updatedChannels, ":")
@@ -705,4 +706,74 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 	} else {
 		irccon.Privmsg(channel, "Usage: !notify <on/off>")
 	}
+}
+
+// The weather command receives an IRC connection pointer, a channel, a nick and an arguments slice of strings.
+// It then shows the current weather for a given location on the channel using the OpenWeatherMap API.
+func cmdWeather(irccon *irc.Connection, channel string, nick string, args []string) {
+	weather, err := readCSV(weatherFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting weather settings.")
+		log.Println("cmdWeather:", err)
+		return
+	}
+	location := "London"
+	tempUnits := "C"
+	windUnits := "m/s"
+	// No location was provided as argument to the command.
+	if len(args) == 0 {
+		for _, v := range weather {
+			if strings.ToLower(v[0]) == strings.ToLower(nick) {
+				tempUnits = strings.ToUpper(v[1])
+				location = v[2]
+			}
+		}
+	// A location was provided as argument to the command.
+	} else {
+		var newUser bool = true
+		location = strings.Join(args, " ")
+		for i, v := range weather {
+			// User with a location on the weather database.
+			if strings.ToLower(v[0]) == strings.ToLower(nick) {
+				newUser = false
+				weather[i][2] = location
+			}
+		}
+		if newUser {
+			// User without a location on the weather database.
+			weather = append(weather, []string{nick, "c", location})
+		}
+		err = writeCSV(weatherFile, weather)
+		if err != nil {
+			irccon.Privmsg(channel, "Error storing weather location.")
+			log.Println("cmdWeather:", err)
+			return
+		}
+	}
+        if tempUnits == "F" {
+                windUnits = "mph"
+        }
+        w, err := owm.NewCurrent(tempUnits, "en", owmAPIKey)
+        if err != nil {
+		irccon .Privmsg(channel, "Error fetching weather.")
+		log.Println("cmdWeather:", err)
+		return
+        }
+        err = w.CurrentByName(location)
+	if err != nil {
+		irccon.Privmsg(channel, "Could not fetch weather for that location.")
+		log.Println("cmdWeather:", err)
+		return
+	}
+        irccon.Privmsg(
+		channel,
+                fmt.Sprintf("%s: %s | Temperature: %0.1f%s | Humidity: %d%% | Pressure: %0.1fhPa | Wind: %0.1f%s",
+			w.Name,
+                        w.Weather[0].Description,
+                        w.Main.Temp,
+                        tempUnits,
+                        w.Main.Humidity,
+                        w.Main.Pressure,
+                        w.Wind.Speed,
+			windUnits))
 }

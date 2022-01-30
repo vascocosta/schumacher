@@ -88,6 +88,8 @@ func main() {
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "constructor")
+			case "w", "weather":
+				go cmdWeather(irccon, command.Channel, command.Nick, command.Args)
 			}
 		}
 	})

@@ -3,6 +3,7 @@ module gitlab.com/vascocosta/schumacher
 go 1.17
 
 require (
+	github.com/briandowns/openweathermap v0.16.0
 	github.com/gocolly/colly v1.2.0
 	github.com/mmcdole/gofeed v1.1.3
 	github.com/thoj/go-ircevent v0.0.0-20210723090443-73e444401d64
