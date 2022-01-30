@@ -717,7 +717,7 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 		log.Println("cmdWeather:", err)
 		return
 	}
-	location := "London"
+	location := ""
 	tempUnits := "C"
 	windUnits := "m/s"
 	// No location was provided as argument to the command.
@@ -728,7 +728,28 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 				location = v[2]
 			}
 		}
-	// A location was provided as argument to the command.
+	// A location or temperature unit was provided as argument to the command.
+	} else if len(args) == 1 && (strings.ToLower(args[0]) == "c" || strings.ToLower(args[0]) == "f") {
+		var unitsUpdated bool
+		for i, v := range weather {
+			// User with a location on the weather database.
+			if strings.ToLower(v[0]) == strings.ToLower(nick) {
+				unitsUpdated = true
+				weather[i][1] = strings.ToLower(args[0])
+			}
+		}
+		if !unitsUpdated {
+			irccon.Privmsg(channel, "Get the weather for some location before setting the units.")
+			return
+		}
+		err = writeCSV(weatherFile, weather)
+		if err != nil {
+			irccon.Privmsg(channel, "Error storing weather units.")
+			log.Println("cmdWeather:", err)
+			return
+		}
+		irccon.Privmsg(channel, "Temperature units updated.")
+		return
 	} else {
 		var newUser bool = true
 		location = strings.Join(args, " ")
@@ -749,6 +770,10 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 			log.Println("cmdWeather:", err)
 			return
 		}
+	}
+	if location == "" {
+		irccon.Privmsg(channel, "Please provide a location as argument.")
+		return
 	}
         if tempUnits == "F" {
                 windUnits = "mph"
