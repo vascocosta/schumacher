@@ -612,6 +612,10 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 	// Then we set the index to the quotes to a random number between 0 and the length of quotes.
 	// Finally we show a random quote on the channel.
 	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
+		if len(channelQuotes) == 0 {
+			irccon.Privmsg(channel, "There are no quotes for this channel.")
+			return
+		}
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(channelQuotes))
 		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", channelQuotes[index][1], channelQuotes[index][0]))
