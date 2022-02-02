@@ -221,11 +221,16 @@ func tskEvents(irccon *irc.Connection) {
 
 // The tskHTMLTitle function runs in the background as a goroutine that extracts HTML titles from links.
 func tskHTMLTitle(irccon *irc.Connection, channel string, message string) {
+	var titles []string
 	rxStrict := xurls.Strict()
 	url := rxStrict.FindString(message)
 	c := colly.NewCollector()
 	c.OnHTML("title", func(e *colly.HTMLElement) {
-		irccon.Privmsg(channel, "Title: "+e.Text)
+		titles = append(titles, e.Text)
 	})
 	c.Visit(url)
+	time.Sleep(3 * time.Second)
+	if len(titles) > 0 {
+		irccon.Privmsg(channel, "Title: "+titles[0])
+	}
 }

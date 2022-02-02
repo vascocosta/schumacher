@@ -600,18 +600,25 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 		log.Println("cmdQuote:", err)
 		return
 	}
+	// Filter only the quotes of the current channel.
+	var channelQuotes [][]string
+	for _, quote := range quotes {
+		if strings.ToLower(quote[2]) == strings.ToLower(channel) {
+			channelQuotes = append(channelQuotes, quote)
+		}
+	}
 	// If there are no arguments or if the first argument is "get", show a random quote.
 	// We seed the randomizer with some variable number, the current time in nano seconds.
 	// Then we set the index to the quotes to a random number between 0 and the length of quotes.
 	// Finally we show a random quote on the channel.
 	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
 		rand.Seed(time.Now().UnixNano())
-		index := rand.Intn(len(quotes))
-		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", quotes[index][1], quotes[index][0]))
-		// If there is more than one argument and the first argument is "add", add the provided quote.
-		// Finally we show a confirmation message on the channel.
+		index := rand.Intn(len(channelQuotes))
+		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", channelQuotes[index][1], channelQuotes[index][0]))
+	// If there is more than one argument and the first argument is "add", add the provided quote.
+	// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
-		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " ")})
+		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " "), strings.ToLower(channel)})
 		err = writeCSV(quotesFile, quotes)
 		if err != nil {
 			irccon.Privmsg(channel, "Error adding quote.")
