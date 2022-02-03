@@ -41,6 +41,9 @@ func findNext(category string, session string) (event []string, err error) {
 	if err != nil {
 		return
 	}
+	// Loop through all events and get a parsed time for the event that matches the category and session criteria.
+	// There are 3 special cases where the category and session can be set to the wildcard any in different ways.
+	// Otherwise, use the default case to search for a specific category and session.
 	for _, e := range events {
 		switch {
 		case strings.ToLower(category) == "any" && strings.ToLower(session) == "any":
@@ -74,6 +77,8 @@ func findNext(category string, session string) (event []string, err error) {
 				}
 			}
 		}
+		// Get the time delta from now until the time of the event.
+		// If delta is equal or greater than zero, this is the next event that will happen.
 		delta := time.Until(t)
 		if delta >= 0 {
 			event = []string{e[0], e[1], e[2], e[3], e[4], e[5]}
