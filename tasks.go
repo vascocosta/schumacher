@@ -184,6 +184,7 @@ func tskEvents(irccon *irc.Connection) {
 		// If the index becomes greather than what the buffer can hold, we reset it.
 		// Otherwise we check if the announced buffer already contains the next event.
 		// If it doesn't, the event is announced on the channel and added to the buffer.
+		// Finally, users subscribed to the notifications of the channel are mentioned.
 		if index > 4 {
 			index = 0
 		} else {
@@ -219,16 +220,21 @@ func tskEvents(irccon *irc.Connection) {
 	}
 }
 
-// The tskHTMLTitle function runs in the background as a goroutine that extracts HTML titles from links.
+// The tskHTMLTitle function runs in the background as a goroutine that scrapes HTML titles from links.
 func tskHTMLTitle(irccon *irc.Connection, channel string, message string) {
-	var titles []string
+	var titles []string // Slice of string to hold all scraped titles.
+	// Use the xurls package to get the first url of the message.
+	// Strict means only full URL schemes (including protocol) are considered.
 	rxStrict := xurls.Strict()
 	url := rxStrict.FindString(message)
+	// Use colly's OnHTML callback with a title tag filter to scrape the document's title.
 	c := colly.NewCollector()
 	c.OnHTML("title", func(e *colly.HTMLElement) {
 		titles = append(titles, e.Text)
 	})
 	c.Visit(url)
+	// Since badly formatted HTML documents may contain multiple titles, we wait 3 seconds.
+	// Then if at least one title tag was extracted, we show the first one on the channel.
 	time.Sleep(3 * time.Second)
 	if len(titles) > 0 {
 		irccon.Privmsg(channel, "Title: "+titles[0])

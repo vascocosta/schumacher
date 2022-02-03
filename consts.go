@@ -31,10 +31,10 @@ const (
 	resultsFile  = folder + "results.csv"                 // Full path to the results file.
 	quizFile     = folder + "quiz.csv"                    // Full path to the quiz file.
 	quotesFile   = folder + "quotes.csv"                  // Full path to the quotes file.
-	weatherFile  = folder + "weather.csv"
-	pollTimeout  = 60
-	quizTimeout  = 20
-	hns          = 3600000000000
-	feedInterval = 300
-	owmAPIKey    = "f97b1089707bd013b60c22db86730cf8"
+	weatherFile  = folder + "weather.csv"                 // Full path to the weather file.
+	pollTimeout  = 60                                     // Poll timeout in seconds.
+	quizTimeout  = 20                                     // Quiz timeout in seconds.
+	hns          = 3600000000000                          // Number of nanoseconds in one hour.
+	feedInterval = 300                                    // Feed poll interval in seconds.
+	owmAPIKey    = "f97b1089707bd013b60c22db86730cf8"     // OpenWeatherMap API key.
 )

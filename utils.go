@@ -37,6 +37,7 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// Small utility function that returns weather a nick is a user or not.
 func isUser(nick string, users [][]string) bool {
 	for _, user := range users {
 		if strings.ToLower(nick) == strings.ToLower(user[0]) {
@@ -96,7 +97,7 @@ func getURL(url string) (data []byte, err error) {
 	return
 }
 
-// The parsecmd function takes a message string and breaks it down into a Command.
+// Small utility function that takes a message string and breaks it down into a Command.
 func parseCommand(message string, nick string, channel string) (command Command, err error) {
 	if len(message) > 1 && strings.HasPrefix(message, prefix) {
 		split := strings.Split(message, " ")

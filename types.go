@@ -98,7 +98,7 @@ type CStandings struct {
 	}
 }
 
-// Type that represents a quiz score.
+// Type that represents a score that can be sorted by points.
 type Score struct {
 	Nick   string
 	Points int
