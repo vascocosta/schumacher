@@ -37,6 +37,23 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// Small utility function that returns a map[string]string given a [][]string and a key/value pair.
+func toStringMap(s [][]string, key int, value int) (result map[string]string, err error) {
+	if len(s) == 0 || key < 0 || value < 0 || key >= value {
+		err := errors.New("Invalid slice, key or value.")
+		return result, err
+	}
+	result = make(map[string]string)
+	for _, v := range s {
+		if (key > (len(v) - 1)) || (value > (len(v) -1)) {
+			err := errors.New("Invalid slice, key or value.")
+			return result, err
+		}
+		result[v[key]] = v[value]
+	}
+	return
+}
+
 // Small utility function that returns weather a nick is a user or not.
 func isUser(nick string, users [][]string) bool {
 	for _, user := range users {

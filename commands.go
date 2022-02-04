@@ -162,10 +162,12 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 		sort.Sort(sort.Reverse(scoreList))
 		for i, score := range scoreList {
 			if score.Points > 0 {
-				output += fmt.Sprintf("%d. %s %d | ", i+1, score.Nick, score.Points)
+				output += fmt.Sprintf("%d. [%s]: %d | ", i+1, score.Nick, score.Points)
 			}
 		}
-		irccon.Privmsg(channel, output[:len(output)-3])
+		if len(output) > 3 {
+			irccon.Privmsg(channel, output[:len(output)-3])
+		}
 		return
 	case "driver", "drivers":
 		var standings DStandings
@@ -330,14 +332,37 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		irccon.Privmsg(channel, fmt.Sprintf("You haven't placed a bet for the %s yet.", event[1]))
 		return
 	}
-	if len(bet) != 3 {
-		irccon.Privmsg(channel, "The bet must contain 3 drivers.")
-		return
-	}
 	drivers, err := readCSV(driversFile)
 	if err != nil {
 		irccon.Privmsg(channel, "Error getting drivers.")
 		log.Println("cmdBet:", err)
+		return
+	}
+	if len(bet) == 1 {
+		switch strings.ToLower(bet[0]) {
+		case "multipliers", "odds":
+			var output string
+			odds, err := toStringMap(drivers, 1, 2)
+			if err != nil {
+				irccon.Privmsg(channel, "Error getting odds.")
+				log.Println("cmdBet:", err)
+				return
+			}
+			for k, v := range odds {
+				output += fmt.Sprintf("[%s]: %s | ", strings.ToUpper(k), v)
+			}
+			if len(output) > 3 {
+				irccon.Privmsg(channel, output[:len(output)-3])
+			}
+		case "log":
+			irccon.Privmsg(channel, "!bet log is coming soon... Meanwhile use simply !bet to check your current bet.")
+		default:
+			irccon.Privmsg(channel, "Unknown command option.")
+		}
+		return
+	}
+	if len(bet) != 3 {
+		irccon.Privmsg(channel, "The bet must contain 3 drivers.")
 		return
 	}
 	first := strings.ToLower(bet[0])
@@ -405,17 +430,47 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		log.Println("cmdProcessBets:", err)
 		return
 	}
+	drivers, err := readCSV(driversFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting drivers.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	odds, err := toStringMap(drivers, 1, 2)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting odds.")
+		log.Println("cmdProcessBets:", err)
+		return
+	}
 	for i, bet := range bets {
 		score := 0
 		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
 			if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
-				score += 10
+				multiplier, err := strconv.Atoi(odds[bet[2]])
+				if err != nil {
+					irccon.Privmsg(channel, "Error applying multiplier.")
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				score += (10*multiplier)
 			}
 			if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
-				score += 10
+				multiplier, err := strconv.Atoi(odds[bet[3]])
+				if err != nil {
+					irccon.Privmsg(channel, "Error applying multiplier.")
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				score += (10*multiplier)
 			}
 			if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
-				score += 10
+				multiplier, err := strconv.Atoi(odds[bet[4]])
+				if err != nil {
+					irccon.Privmsg(channel, "Error applying multiplier.")
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				score += (10*multiplier)
 			}
 			bets[i][5] = strconv.Itoa(score)
 			for j, user := range users {
