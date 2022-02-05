@@ -313,13 +313,13 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		log.Println("cmdBet:", err)
 		return
 	}
+	bets, err = readCSV(betsFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting bets.")
+		log.Println("cmdBet:", err)
+		return
+	}
 	if len(bet) == 0 {
-		bets, err = readCSV(betsFile)
-		if err != nil {
-			irccon.Privmsg(channel, "Error getting bets.")
-			log.Println("cmdBet:", err)
-			return
-		}
 		for i := len(bets) - 1; i >= 0; i-- {
 			if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 				first := strings.ToUpper(bets[i][2])
@@ -355,7 +355,22 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				irccon.Privmsg(channel, output[:len(output)-3])
 			}
 		case "log":
-			irccon.Privmsg(channel, "!bet log is coming soon... Meanwhile use simply !bet to check your current bet.")
+			var betsFound bool
+			for i := len(bets) - 1; i >= 0 || i >= len(bets) - 3; i-- {
+				if strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
+					betsFound = true
+					irccon.Privmsg(channel,
+						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
+						bets[i][0],
+						strings.ToUpper(bets[i][2]),
+						strings.ToUpper(bets[i][3]),
+						strings.ToUpper(bets[i][4]),
+						bets[i][5]))
+				}
+			}
+			if !betsFound {
+				irccon.Privmsg(channel, "No recent bets from you.")
+			}
 		default:
 			irccon.Privmsg(channel, "Unknown command option.")
 		}
@@ -376,12 +391,6 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	}
 	if correct != 3 {
 		irccon.Privmsg(channel, "Invalid drivers.")
-		return
-	}
-	bets, err = readCSV(betsFile)
-	if err != nil {
-		irccon.Privmsg(channel, "Error getting bets.")
-		log.Println("cmdBet:", err)
 		return
 	}
 	for i := 0; i < len(bets); i++ {
