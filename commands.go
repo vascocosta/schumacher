@@ -460,34 +460,50 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 	}
 	for i, bet := range bets {
 		score := 0
+		first := strings.ToLower(results[0][1])
+		second := strings.ToLower(results[0][2])
+		third := strings.ToLower(results[0][3])
 		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
-			if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
+			if contains([]string{first, second, third}, strings.ToLower(bet[2])) {
 				multiplier, err := strconv.Atoi(odds[bet[2]])
 				if err != nil {
 					irccon.Privmsg(channel, "Error applying multiplier.")
 					log.Println("cmdProcessBets:", err)
 					return
 				}
-				score += (10*multiplier)
+				if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
+					score += (10*multiplier)
+				} else {
+					score += (5*multiplier)
+				}
 			}
-			if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
+			if contains([]string{first, second, third}, strings.ToLower(bet[3])) {
 				multiplier, err := strconv.Atoi(odds[bet[3]])
 				if err != nil {
 					irccon.Privmsg(channel, "Error applying multiplier.")
 					log.Println("cmdProcessBets:", err)
 					return
 				}
-				score += (10*multiplier)
+				if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
+					score += (10*multiplier)
+				} else {
+					score += (5*multiplier)
+				}
 			}
-			if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
+			if contains([]string{first, second, third}, strings.ToLower(bet[4])) {
 				multiplier, err := strconv.Atoi(odds[bet[4]])
 				if err != nil {
 					irccon.Privmsg(channel, "Error applying multiplier.")
 					log.Println("cmdProcessBets:", err)
 					return
 				}
-				score += (10*multiplier)
+				if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
+					score += (10*multiplier)
+				} else {
+					score += (5*multiplier)
+				}
 			}
+
 			bets[i][5] = strconv.Itoa(score)
 			for j, user := range users {
 				if strings.ToLower(user[0]) == strings.ToLower(bet[1]) {
