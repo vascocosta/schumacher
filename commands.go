@@ -129,13 +129,6 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 	} else {
 		championship = "bet"
 	}
-	// Get the raw data through HTTP.
-	data, err := getURL(url)
-	if err != nil {
-		irccon.Privmsg(channel, "Error getting standings.")
-		log.Println("cmdStandings:", err)
-		return
-	}
 	// Display the results on the channel, depending on which kind of championship was requested.
 	// The API returns in JSON format which is decoded to either a DStandings or CStandings strut.
 	switch strings.ToLower(championship) {
@@ -170,6 +163,13 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 		}
 		return
 	case "driver", "drivers":
+		// Get the raw data through HTTP.
+		data, err := getURL(url)
+		if err != nil {
+			irccon.Privmsg(channel, "Error getting standings.")
+			log.Println("cmdStandings:", err)
+			return
+		}
 		var standings DStandings
 		err = json.Unmarshal(data, &standings)
 		if err != nil {
@@ -187,6 +187,13 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 			)
 		}
 	case "constructor", "constructors":
+		// Get the raw data through HTTP.
+		data, err := getURL(url)
+		if err != nil {
+			irccon.Privmsg(channel, "Error getting standings.")
+			log.Println("cmdStandings:", err)
+			return
+		}
 		var standings CStandings
 		err = json.Unmarshal(data, &standings)
 		if err != nil {
@@ -361,7 +368,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 					betsFound = true
 					irccon.Privmsg(channel,
 						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
-						bets[i][0],
+						strings.ToUpper(bets[i][0][0:1])+bets[i][0][1:],
 						strings.ToUpper(bets[i][2]),
 						strings.ToUpper(bets[i][3]),
 						strings.ToUpper(bets[i][4]),
