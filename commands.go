@@ -368,7 +368,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 					betsFound = true
 					irccon.Privmsg(channel,
 						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
-						strings.ToUpper(bets[i][0][0:1])+bets[i][0][1:],
+						bets[i][0],
 						strings.ToUpper(bets[i][2]),
 						strings.ToUpper(bets[i][3]),
 						strings.ToUpper(bets[i][4]),
@@ -403,12 +403,12 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	for i := 0; i < len(bets); i++ {
 		if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 			update = true
-			bets[i] = []string{strings.ToLower(event[1]), strings.ToLower(nick), first, second, third, "0"}
+			bets[i] = []string{event[1], strings.ToLower(nick), first, second, third, "0"}
 			break
 		}
 	}
 	if !update {
-		bets = append(bets, []string{strings.ToLower(event[1]), strings.ToLower(nick), first, second, third, "0"})
+		bets = append(bets, []string{event[1], strings.ToLower(nick), first, second, third, "0"})
 	}
 	err = writeCSV(betsFile, bets)
 	if err != nil {
