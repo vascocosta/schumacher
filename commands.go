@@ -300,6 +300,8 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 		wday, mday, month, hour, min, zone, uoffset, event[0]+" "+event[1]+" "+event[2], days, hours, minutes))
 }
 
+// The bet command receives an IRC connection pointer, a channel, a nick and a bet containing 3 drivers.
+// It then stores the bet provided by the user, or lets the user know his current bet for the next race.
 func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	var correct int
 	var bets [][]string
@@ -326,6 +328,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		log.Println("cmdBet:", err)
 		return
 	}
+	// If no bet is provided as argument, we simply show the user's current bet, if he's placed one.
 	if len(bet) == 0 {
 		for i := len(bets) - 1; i >= 0; i-- {
 			if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
@@ -345,6 +348,9 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		log.Println("cmdBet:", err)
 		return
 	}
+	// If instead of a normal bet the user provides a single word, we interpret it as an argument.
+	// There are multiple arguments, for which we show the driver odds or a log of the user's bets.
+	// Alternatively, if the argument provided isn't a valid command option, we let the user know.
 	if len(bet) == 1 {
 		switch strings.ToLower(bet[0]) {
 		case "multipliers", "odds":
@@ -363,16 +369,16 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 			}
 		case "log":
 			var betsFound bool
-			for i := len(bets) - 1; i >= 0 || i >= len(bets) - 3; i-- {
+			for i := len(bets) - 1; i >= 0 || i >= len(bets)-3; i-- {
 				if strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 					betsFound = true
 					irccon.Privmsg(channel,
 						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
-						bets[i][0],
-						strings.ToUpper(bets[i][2]),
-						strings.ToUpper(bets[i][3]),
-						strings.ToUpper(bets[i][4]),
-						bets[i][5]))
+							bets[i][0],
+							strings.ToUpper(bets[i][2]),
+							strings.ToUpper(bets[i][3]),
+							strings.ToUpper(bets[i][4]),
+							bets[i][5]))
 				}
 			}
 			if !betsFound {
@@ -387,6 +393,9 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		irccon.Privmsg(channel, "The bet must contain 3 drivers.")
 		return
 	}
+	// Finally, if we reach this point, it means the user has provided a valid bet composed of 3 drivers.
+	// We verify that all 3 driver codes are valid as per the drivers CSV file before we go any further.
+	// If the 3 codes are valid, we either place a new bet or update an already placed bet for the race.
 	first := strings.ToLower(bet[0])
 	second := strings.ToLower(bet[1])
 	third := strings.ToLower(bet[2])
@@ -419,6 +428,8 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	irccon.Privmsg(channel, "Your bet for the "+event[1]+" was successfully updated.")
 }
 
+// The processbets command receives an IRC connection pointer, a channel and a nick.
+// It then processes the placed bets, according to the results in the results file.
 func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 	if strings.ToLower(nick) != strings.ToLower(adminNick) {
 		irccon.Privmsg(channel, "Only "+adminNick+" can use this command.")
@@ -458,12 +469,17 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 		log.Println("cmdProcessBets:", err)
 		return
 	}
+	// This is the main loop where we go through each bet placed by the user and process it.
+	// If the race on the bet matches the race on the results file, we calculate its score.
 	for i, bet := range bets {
 		score := 0
 		first := strings.ToLower(results[0][1])
 		second := strings.ToLower(results[0][2])
 		third := strings.ToLower(results[0][3])
 		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
+			// If the first driver is on the podium, we have two different possibilities.
+			// If the first driver is the first on the results, we score 10 * multiplier.
+			// If the first driver is not the first on the results, we score 5 * multiplier.
 			if contains([]string{first, second, third}, strings.ToLower(bet[2])) {
 				multiplier, err := strconv.Atoi(odds[bet[2]])
 				if err != nil {
@@ -472,11 +488,14 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 					return
 				}
 				if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
-					score += (10*multiplier)
+					score += (10 * multiplier)
 				} else {
-					score += (5*multiplier)
+					score += (5 * multiplier)
 				}
 			}
+			// If the second driver is on the podium, we have two different possibilities.
+			// If the second driver is the second on the results, we score 10 * multiplier.
+			// If the second driver is not the second on the results, we score 5 * multiplier.
 			if contains([]string{first, second, third}, strings.ToLower(bet[3])) {
 				multiplier, err := strconv.Atoi(odds[bet[3]])
 				if err != nil {
@@ -485,11 +504,14 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 					return
 				}
 				if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
-					score += (10*multiplier)
+					score += (10 * multiplier)
 				} else {
-					score += (5*multiplier)
+					score += (5 * multiplier)
 				}
 			}
+			// If the third driver is on the podium, we have two different possibilities.
+			// If the third driver is the third on the results, we score 10 * multiplier.
+			// If the third driver is not the third on the results, we score 5 * multiplier.
 			if contains([]string{first, second, third}, strings.ToLower(bet[4])) {
 				multiplier, err := strconv.Atoi(odds[bet[4]])
 				if err != nil {
@@ -498,13 +520,14 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 					return
 				}
 				if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
-					score += (10*multiplier)
+					score += (10 * multiplier)
 				} else {
-					score += (5*multiplier)
+					score += (5 * multiplier)
 				}
 			}
-
 			bets[i][5] = strconv.Itoa(score)
+			// Update the total number of points for each driver on the users file.
+			// The code above only handles points for each bet, not for each user.
 			for j, user := range users {
 				if strings.ToLower(user[0]) == strings.ToLower(bet[1]) {
 					currentScore, err := strconv.Atoi(users[j][2])
@@ -524,6 +547,8 @@ func cmdProcessBets(irccon *irc.Connection, channel string, nick string) {
 			return
 		}
 	}
+	// Finally update the bets file with the points for each bet for the current race.
+	// The results file is updated so that the last field is set to the current race.
 	err = writeCSV(betsFile, bets)
 	if err != nil {
 		irccon.Privmsg(channel, "Error storing bet points.")
@@ -618,9 +643,16 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 		activeChannel = ""
 		return
 	}
+	// Filter only the questions of the current channel.
+	var channelQuestions [][]string
+	for _, question := range questions {
+		if strings.ToLower(question[2]) == strings.ToLower(channel) {
+			channelQuestions = append(channelQuestions, question)
+		}
+	}
 	// This is an obfuscated way to randomise a slice that I googled in order to randomise the questions.
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
+	rand.Shuffle(len(channelQuestions), func(i, j int) { channelQuestions[i], channelQuestions[j] = channelQuestions[j], channelQuestions[i] })
 	// This is the main loop of the goroutine, which for now only asks up to 5 questions to avoid SPAM.
 	// After showing the question on irc, it waits for an answer on the "c" go channel and classifies it.
 	// The answer is sent to the "c" go channel on the main goroutine, inside the "PRIVMSG" callback.
@@ -634,12 +666,12 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 			channel,
 			fmt.Sprintf(
 				"%d/%d - %s (%0.0f seconds remaining)",
-				i+1, n, questions[i][0], 20-time.Since(start).Seconds(),
+				i+1, n, channelQuestions[i][0], 20-time.Since(start).Seconds(),
 			),
 		)
 		select {
 		case answer := <-c:
-			if strings.ToLower(answer[1]) == strings.ToLower(questions[i][1]) {
+			if strings.ToLower(answer[1]) == strings.ToLower(channelQuestions[i][1]) {
 				timer.Reset(time.Duration(quizTimeout) * time.Second)
 				start = time.Now()
 				irccon.Privmsg(channel, "Correct!")
@@ -647,7 +679,7 @@ func cmdQuiz(irccon *irc.Connection, channel string, c chan [2]string, number st
 			} else if answer[0] == nick && answer[1] == "--TIMEOUT--" {
 				timer.Reset(time.Duration(quizTimeout) * time.Second)
 				start = time.Now()
-				irccon.Privmsg(channel, "Time's up... The correct answer was: "+questions[i][1])
+				irccon.Privmsg(channel, "Time's up... The correct answer was: "+channelQuestions[i][1])
 			} else {
 				if i >= 0 {
 					i-- // Avoid advancing to the next question, when answer is wrong.
@@ -711,8 +743,8 @@ func cmdQuote(irccon *irc.Connection, channel string, args []string) {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(channelQuotes))
 		irccon.Privmsg(channel, fmt.Sprintf("%s - %s", channelQuotes[index][1], channelQuotes[index][0]))
-	// If there is more than one argument and the first argument is "add", add the provided quote.
-	// Finally we show a confirmation message on the channel.
+		// If there is more than one argument and the first argument is "add", add the provided quote.
+		// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
 		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " "), strings.ToLower(channel)})
 		err = writeCSV(quotesFile, quotes)
@@ -763,6 +795,9 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 		log.Println("cmdNotify:", err)
 		return
 	}
+	// If the number of arguments is exactly one, we check whether it is on or off.
+	// If it is on, we add the current channel to the user's notification list.
+	// If it is off, we remove the current channel from the user's notification list.
 	if len(args) == 1 {
 		if strings.ToLower(args[0]) == "on" {
 			for i, user := range users {
@@ -831,7 +866,7 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 				location = v[2]
 			}
 		}
-	// A location or temperature unit was provided as argument to the command.
+		// A location or temperature unit was provided as argument to the command.
 	} else if len(args) == 1 && (strings.ToLower(args[0]) == "c" || strings.ToLower(args[0]) == "f") {
 		var unitsUpdated bool
 		for i, v := range weather {
@@ -878,30 +913,32 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 		irccon.Privmsg(channel, "Please provide a location as argument.")
 		return
 	}
-        if tempUnits == "F" {
-                windUnits = "mph"
-        }
-        w, err := owm.NewCurrent(tempUnits, "en", owmAPIKey)
-        if err != nil {
-		irccon .Privmsg(channel, "Error fetching weather.")
+	if tempUnits == "F" {
+		windUnits = "mph"
+	}
+	// Finally get the current weather at the given location using the right units.
+	// Then display a nicely formatted and compact weather string on the channel.
+	w, err := owm.NewCurrent(tempUnits, "en", owmAPIKey)
+	if err != nil {
+		irccon.Privmsg(channel, "Error fetching weather.")
 		log.Println("cmdWeather:", err)
 		return
-        }
-        err = w.CurrentByName(location)
+	}
+	err = w.CurrentByName(location)
 	if err != nil {
 		irccon.Privmsg(channel, "Could not fetch weather for that location.")
 		log.Println("cmdWeather:", err)
 		return
 	}
-        irccon.Privmsg(
+	irccon.Privmsg(
 		channel,
-                fmt.Sprintf("%s: %s | Temperature: %0.1f%s | Humidity: %d%% | Pressure: %0.1fhPa | Wind: %0.1f%s",
+		fmt.Sprintf("%s: %s | Temperature: %0.1f%s | Humidity: %d%% | Pressure: %0.1fhPa | Wind: %0.1f%s",
 			w.Name,
-                        w.Weather[0].Description,
-                        w.Main.Temp,
-                        tempUnits,
-                        w.Main.Humidity,
-                        w.Main.Pressure,
-                        w.Wind.Speed,
+			w.Weather[0].Description,
+			w.Main.Temp,
+			tempUnits,
+			w.Main.Humidity,
+			w.Main.Pressure,
+			w.Wind.Speed,
 			windUnits))
 }

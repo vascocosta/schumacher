@@ -45,7 +45,7 @@ func toStringMap(s [][]string, key int, value int) (result map[string]string, er
 	}
 	result = make(map[string]string)
 	for _, v := range s {
-		if (key > (len(v) - 1)) || (value > (len(v) -1)) {
+		if (key > (len(v) - 1)) || (value > (len(v) - 1)) {
 			err := errors.New("Invalid slice, key or value.")
 			return result, err
 		}

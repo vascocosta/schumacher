@@ -28,9 +28,9 @@ import (
 var nick = "Schumacher_"     // Nick to be used by the bot.
 var channels = "#motorsport" // Names of the channels to join.
 var adminNick = "gluon"      // Nick used by the admin of the bot.
-var poll bool
-var quiz bool
-var activeChannel string
+var poll bool                // Bool to check if a poll is on.
+var quiz bool                // Bool to check if a quiz is on.
+var activeChannel string     // The active channel.
 
 func main() {
 	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
