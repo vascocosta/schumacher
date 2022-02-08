@@ -858,7 +858,9 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 	location := ""
 	tempUnits := "C"
 	windUnits := "m/s"
-	// No location was provided as argument to the command.
+	// Neither a location nor temperature unit were provided as an argument to the command.
+	// So we must get the location and temperature unit for the user from the weather file.
+	// If a user in the weather file matches nick, we get its location and temperature unit.
 	if len(args) == 0 {
 		for _, v := range weather {
 			if strings.ToLower(v[0]) == strings.ToLower(nick) {
@@ -866,7 +868,10 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 				location = v[2]
 			}
 		}
-		// A location or temperature unit was provided as argument to the command.
+	// A temperature unit was provided as an argument to the command, we must update the setting.
+	// However, we must first check if the user already has a location set on the weather file.
+	// If so, we update the user units, otherwise we ask him to get the wether for a location.
+	// This is so that the user gets registered on the weather file before we can set a location.
 	} else if len(args) == 1 && (strings.ToLower(args[0]) == "c" || strings.ToLower(args[0]) == "f") {
 		var unitsUpdated bool
 		for i, v := range weather {
@@ -888,6 +893,8 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 		}
 		irccon.Privmsg(channel, "Temperature units updated.")
 		return
+	// If we reach this point, a location was provided as an argument to the command.
+	// If the user already exists, we update his location, otherwise we register him.
 	} else {
 		var newUser bool = true
 		location = strings.Join(args, " ")
@@ -916,8 +923,8 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 	if tempUnits == "F" {
 		windUnits = "mph"
 	}
-	// Finally get the current weather at the given location using the right units.
-	// Then display a nicely formatted and compact weather string on the channel.
+	// Finally we get the current weather at a location using the temperature units.
+	// Then we display a nicely formatted and compact weather string on the channel.
 	w, err := owm.NewCurrent(tempUnits, "en", owmAPIKey)
 	if err != nil {
 		irccon.Privmsg(channel, "Error fetching weather.")
