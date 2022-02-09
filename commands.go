@@ -868,10 +868,10 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 				location = v[2]
 			}
 		}
-	// A temperature unit was provided as an argument to the command, we must update the setting.
-	// However, we must first check if the user already has a location set on the weather file.
-	// If so, we update the user units, otherwise we ask him to get the wether for a location.
-	// This is so that the user gets registered on the weather file before we can set a location.
+		// A temperature unit was provided as an argument to the command, we must update the setting.
+		// However, we must first check if the user already has a location set on the weather file.
+		// If so, we update the user units, otherwise we ask him to get the wether for a location.
+		// This is so that the user gets registered on the weather file before we can set a location.
 	} else if len(args) == 1 && (strings.ToLower(args[0]) == "c" || strings.ToLower(args[0]) == "f") {
 		var unitsUpdated bool
 		for i, v := range weather {
@@ -893,8 +893,8 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 		}
 		irccon.Privmsg(channel, "Temperature units updated.")
 		return
-	// If we reach this point, a location was provided as an argument to the command.
-	// If the user already exists, we update his location, otherwise we register him.
+		// If we reach this point, a location was provided as an argument to the command.
+		// If the user already exists, we update his location, otherwise we register him.
 	} else {
 		var newUser bool = true
 		location = strings.Join(args, " ")
