@@ -55,7 +55,7 @@ func main() {
 		// In case there's an ongoing poll or quiz, we send the nick/message to a channel.
 		// Otherwise, if the message contains "http", we try to obtain its HTML title tag.
 		// Finally, if we successfully parse a command, we call the matching cmd function.
-		m := event.Message()
+		m := strings.Trim(event.Message(), " ")
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
 			if poll || quiz {

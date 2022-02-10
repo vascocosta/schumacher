@@ -350,6 +350,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	}
 	// If instead of a normal bet the user provides a single word, we interpret it as an argument.
 	// There are multiple arguments, for which we show the driver odds or a log of the user's bets.
+	// Other possible argument is the nick of a registered user, for which we show that user's bet.
 	// Alternatively, if the argument provided isn't a valid command option, we let the user know.
 	if len(bet) == 1 {
 		switch strings.ToLower(bet[0]) {
@@ -385,6 +386,26 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				irccon.Privmsg(channel, "No recent bets from you.")
 			}
 		default:
+			if isUser(strings.ToLower(bet[0]), users) {
+				for i := len(bets) - 1; i >= 0; i-- {
+					if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) &&
+						strings.ToLower(bets[i][1]) == strings.ToLower(bet[0]) {
+						first := strings.ToUpper(bets[i][2])
+						second := strings.ToUpper(bets[i][3])
+						third := strings.ToUpper(bets[i][4])
+						irccon.Privmsg(channel,
+							fmt.Sprintf("%s's current bet for the %s: %s %s %s",
+								bet[0],
+								event[1],
+								first,
+								second,
+								third))
+						return
+					}
+				}
+				irccon.Privmsg(channel, "That user hasn't bet for the current race yet.")
+				return
+			}
 			irccon.Privmsg(channel, "Unknown command option.")
 		}
 		return
