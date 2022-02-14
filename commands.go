@@ -998,7 +998,7 @@ func cmdRegister(irccon *irc.Connection, channel string, nick string) {
 }
 
 // The plugin command receives a name, an IRC connection pointer, a channel, a nick and an arguments slice of strings.
-// It then shows the current weather for a given location on the channel using the OpenWeatherMap API.
+// It then tries to execute the given plugin name if a file with that name is found on the plugins folder.
 func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string, args []string) {
 	var cmd *exec.Cmd
 	if !fileExists(pluginsFolder + name) {
