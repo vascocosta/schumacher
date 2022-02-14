@@ -26,6 +26,7 @@ import (
 	"github.com/thoj/go-ircevent"
 	"log"
 	"math/rand"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
@@ -313,7 +314,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		return
 	}
 	if !isUser(nick, users) {
-		irccon.Privmsg(channel, "You're not a registered user. Ask gluon for a bot account.")
+		irccon.Privmsg(channel, "You're not a registered user. Use !register to register your nick.")
 		return
 	}
 	event, err := findNext("[formula 1]", "race")
@@ -969,4 +970,54 @@ func cmdWeather(irccon *irc.Connection, channel string, nick string, args []stri
 			w.Main.Pressure,
 			w.Wind.Speed,
 			windUnits))
+}
+
+// The register command receives an IRC connection pointer, a channel and a nick.
+// It then checks if the user isn't already registered and registers it with the bot.
+func cmdRegister(irccon *irc.Connection, channel string, nick string) {
+	users, err := readCSV(usersFile)
+	if err != nil {
+		irccon.Privmsg(channel, "Error getting users.")
+		log.Println("cmdRegister:", err)
+		return
+	}
+	// If the nick is already a known user to the bot, we don't register it.
+	// Otherwise we add this new nick as a registered user on the users file.
+	if isUser(strings.ToLower(nick), users) {
+		irccon.Privmsg(channel, "Your nick is already registered.")
+		return
+	}
+	users = append(users, []string{strings.ToLower(nick), "Europe/Berlin", "0", ""})
+	err = writeCSV(usersFile, users)
+	if err != nil {
+		irccon.Privmsg(channel, "Error registering user.")
+		log.Println("cmdRegister:", err)
+		return
+	}
+	irccon.Privmsg(channel, "Your nick was successfully registered.")
+}
+
+// The plugin command receives a name, an IRC connection pointer, a channel, a nick and an arguments slice of strings.
+// It then shows the current weather for a given location on the channel using the OpenWeatherMap API.
+func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string, args []string) {
+	var cmd *exec.Cmd
+	if !fileExists(pluginsFolder + name) {
+		irccon.Privmsg(channel, "Unknown command or plugin.")
+		return
+	}
+	if len(args) == 0 {
+		cmd = exec.Command(pluginsFolder+name, nick)
+	} else {
+		cmd = exec.Command(pluginsFolder+name, nick, strings.Join(args, " "))
+	}
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		irccon.Privmsg(channel, "Error executing plugin.")
+		log.Println("cmdPlugin:", err)
+		return
+	}
+	for _, line := range strings.Split(strings.TrimSuffix(string(output), "\n"), "\n") {
+		irccon.Privmsg(channel, line)
+		time.Sleep(1 * time.Second)
+	}
 }

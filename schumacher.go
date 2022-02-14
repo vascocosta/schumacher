@@ -89,14 +89,16 @@ func main() {
 				}
 			case "q", "quote":
 				cmdQuote(irccon, command.Channel, command.Args)
+			case "r", "register":
+				cmdRegister(irccon, command.Channel, command.Nick)
 			case "wbc", "points":
 				go cmdStandings(irccon, command.Channel, command.Nick, "bet")
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "constructor")
-			case "w", "weather":
-				go cmdWeather(irccon, command.Channel, command.Nick, command.Args)
+			default:
+				go cmdPlugin(strings.ToLower(command.Name), irccon, command.Channel, command.Nick, command.Args)
 			}
 		}
 	})
