@@ -93,25 +93,35 @@ func findNext(category string, session string) (event []string, err error) {
 // The help command receives an IRC connection pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(irccon *irc.Connection, channel string, search string) {
-	help := [9]string{
-		prefix + "ask <question>.",
-		prefix + "bet <xxx> <yyy> <zzz> - Place a bet for the next F1 race.",
-		prefix + "help - Show this help message.",
-		prefix + "next [category] - Show the next motorsport event.",
-		prefix + "quiz [number] - Start an F1 quiz game.",
-		prefix + "quote [get/add] [text] - Get a random quote or add one.",
-		prefix + "wbc - Show the current Betting Championship standings.",
-		prefix + "wcc - Show the current World Constructor Championship standings.",
-		prefix + "wdc - Show the current World Driver Championship standings.",
+	help := [13]string{
+		"ask <question>.",
+		"bet <xxx> <yyy> <zzz> or [log/odds/nick] - Place a bet for the next F1 race or get bet info.",
+		"help - Show this help message.",
+		"next [category] - Show the next motorsport event.",
+		"notify [on/off] - Turn on/off notifications for the current channel.",
+		"omdb [movie/show] - Show info about a movie or a show.",
+		"poll <question;option_1;option_2;option_n>",
+		"quiz [number] - Start an F1 quiz game.",
+		"quote [get/add] [text] - Get a random quote or add one.",
+		"wbc - Show the current Betting Championship standings.",
+		"wcc - Show the current World Constructor Championship standings.",
+		"wdc - Show the current World Driver Championship standings.",
+		"weather [location] - Show the current weather for a locattion.",
 	}
-	for _, value := range help {
-		if search == "" {
-			irccon.Privmsg(channel, value)
-		} else if strings.HasPrefix(value[1:], strings.ToLower(search)) {
-			irccon.Privmsg(channel, value)
-			return
+	if search == "" {
+		var commandList string
+		irccon.Privmsg(channel, "This is a list of all the commands of this bot, !help command_name shows how to use each one:")
+		for _, v := range help {
+			commandList += prefix+strings.Split(v, " ")[0]+" "
 		}
-		time.Sleep(1 * time.Second)
+		irccon.Privmsg(channel, commandList)
+	} else {
+		for _, v := range help {
+			if strings.HasPrefix(v, strings.ToLower(search)) {
+				irccon.Privmsg(channel, prefix+v)
+				return
+			}
+		}
 	}
 }
 
@@ -823,7 +833,7 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 	if len(args) == 1 {
 		if strings.ToLower(args[0]) == "on" {
 			for i, user := range users {
-				if strings.ToLower(user[0]) == nick {
+				if strings.ToLower(user[0]) == strings.ToLower(nick) {
 					channels := strings.Split(user[3], ":")
 					if !contains(channels, channel) {
 						channels = append(channels, channel)
@@ -840,7 +850,7 @@ func cmdNotify(irccon *irc.Connection, channel string, nick string, args []strin
 			}
 		} else if strings.ToLower(args[0]) == "off" {
 			for i, user := range users {
-				if strings.ToLower(user[0]) == nick {
+				if strings.ToLower(user[0]) == strings.ToLower(nick) {
 					channels := strings.Split(user[3], ":")
 					var updatedChannels string
 					if contains(channels, channel) {
