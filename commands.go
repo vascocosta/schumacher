@@ -381,7 +381,8 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 			}
 		case "log":
 			var betsFound bool
-			for i := len(bets) - 1; i >= 0 || i >= len(bets)-3; i-- {
+			var counter int
+			for i := len(bets) - 1; i >= 0 && counter < 3; i-- {
 				if strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 					betsFound = true
 					irccon.Privmsg(channel,
@@ -391,6 +392,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 							strings.ToUpper(bets[i][3]),
 							strings.ToUpper(bets[i][4]),
 							bets[i][5]))
+					counter += 1
 				}
 			}
 			if !betsFound {
