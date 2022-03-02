@@ -112,7 +112,7 @@ func cmdHelp(irccon *irc.Connection, channel string, search string) {
 		var commandList string
 		irccon.Privmsg(channel, "This is a list of all the commands of this bot, !help command_name shows how to use each one:")
 		for _, v := range help {
-			commandList += prefix+strings.Split(v, " ")[0]+" "
+			commandList += prefix + strings.Split(v, " ")[0] + " "
 		}
 		irccon.Privmsg(channel, commandList)
 	} else {
@@ -247,18 +247,22 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 	// Retrieve the next event matching category or session criteria.
 	// Else, simply retrieve the next event from any category or session type.
 	if search != "" {
-		switch search {
-		case "f1", "formula1":
+		switch strings.ToLower(search) {
+		case "f1", "formula1", "formula 1":
 			event, err = findNext("[Formula 1]", "any")
-		case "f2", "formula2":
+		case "f2", "formula2", "formula 2":
 			event, err = findNext("[Formula 2]", "any")
-		case "f3", "formula3":
+		case "f3", "formula3", "formula 3":
 			event, err = findNext("[Formula 3]", "any")
-		case "q", "quali", "qualy", "qualifier", "qualifying":
+		case "q", "quali", "qualy", "qualifying",
+			"f1 quali", "f1 qualy", "f1 qualifying",
+			"formula1 quali", "formula1 qualy", "formula1 qualifying":
 			event, err = findNext("[Formula 1]", "Qualifying")
-		case "r", "race":
+		case "r", "race", "f1 race", "formula 1 race":
 			event, err = findNext("[Formula 1]", "Race")
-		case "s", "sprint":
+		case "s", "sprint", "sprint race",
+			"f1 sprint", "f1 sprint race",
+			"formula1 sprint", "formula1 sprint race":
 			event, err = findNext("[Formula 1]", "Sprint Race")
 		default:
 			event, err = findNext("["+search+"]", "any")
@@ -351,6 +355,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 			}
 		}
 		irccon.Privmsg(channel, fmt.Sprintf("You haven't placed a bet for the %s yet.", event[1]))
+		irccon.Privmsg(channel, fmt.Sprintf("Use !bet log to check older bets."))
 		return
 	}
 	drivers, err := readCSV(driversFile)
