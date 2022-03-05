@@ -131,6 +131,9 @@ func tskFeeds2(irccon *irc.Connection) {
 					// Additionally we also want to make sure the feed item is no older than 2 hours.
 					// This assures only current news when restarting the bot or changing the feeds.
 					if itemTime.After(lastTime) && time.Since((*itemTime)) < 2*hns {
+						if strings.Contains(item.Link, "?") && strings.Contains(item.Link, "&") {
+							item.Link = strings.Split(item.Link, "?")[0]
+						}
 						irccon.Privmsg(
 							feeds[feedData.Key][2],
 							fmt.Sprintf("\x02[%s] [%s]\x02", feeds[feedData.Key][0], item.Title))
