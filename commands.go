@@ -166,7 +166,7 @@ func cmdStandings(irccon *irc.Connection, channel string, nick string, champions
 		sort.Sort(sort.Reverse(scoreList))
 		for i, score := range scoreList {
 			if score.Points > 0 {
-				output += fmt.Sprintf("%d. [%s]: %d | ", i+1, score.Nick, score.Points)
+				output += fmt.Sprintf("%d. %s %d | ", i+1, score.Nick, score.Points)
 			}
 		}
 		if len(output) > 3 {
@@ -379,7 +379,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				return
 			}
 			for k, v := range odds {
-				output += fmt.Sprintf("[%s]: %s | ", strings.ToUpper(k), v)
+				output += fmt.Sprintf("%s %s | ", strings.ToUpper(k), v)
 			}
 			if len(output) > 3 {
 				irccon.Privmsg(channel, output[:len(output)-3])
