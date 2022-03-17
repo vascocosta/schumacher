@@ -378,8 +378,22 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				log.Println("cmdBet:", err)
 				return
 			}
+			scoreList := make(ScoreList, len(drivers))
+			i := 0
 			for k, v := range odds {
-				output += fmt.Sprintf("%s %s | ", strings.ToUpper(k), v)
+				//output += fmt.Sprintf("%s %s | ", strings.ToUpper(k), v)
+				integerOdds, err := strconv.Atoi(v)
+				if err != nil {
+					irccon.Privmsg(channel, "Error getting odds.")
+					log.Println("cmdBet:", err)
+					return
+				}
+				scoreList[i]= Score{k, integerOdds}
+				i++
+			}
+			sort.Sort(scoreList)
+			for _, v := range scoreList {
+				output += fmt.Sprintf("%s %d | ", strings.ToUpper(v.Nick), v.Points)
 			}
 			if len(output) > 3 {
 				irccon.Privmsg(channel, output[:len(output)-3])
