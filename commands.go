@@ -82,7 +82,7 @@ func findNext(category string, session string) (event []string, err error) {
 		// If delta is equal or greater than zero, this is the next event that will happen.
 		delta := time.Until(t)
 		if delta >= 0 {
-			event = []string{e[0], e[1], e[2], e[3], e[4], e[5]}
+			event = []string{e[0], e[1], e[2], e[3], e[4], e[5], e[6]}
 			return event, nil
 		}
 	}

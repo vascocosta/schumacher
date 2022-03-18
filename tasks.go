@@ -210,7 +210,7 @@ func tskEvents(irccon *irc.Connection) {
 				var mentions string
 				for _, user := range users {
 					channels := strings.Split(user[3], ":")
-					if contains(channels, event[4]) {
+					if strings.ToLower(event[6]) == "notify" && contains(channels, event[4]) {
 						mentions += user[0] + " "
 					}
 				}
