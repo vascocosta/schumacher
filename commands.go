@@ -255,13 +255,13 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 		case "f3", "formula3", "formula 3":
 			event, err = findNext("[Formula 3]", "any")
 		case "q", "quali", "qualy", "qualifying",
-			"f1 quali", "f1 qualy", "f1 qualifying",
+			"f1 quali", "f1 qualy", "f1quali", "f1qualy", "f1 qualifying",
 			"formula1 quali", "formula1 qualy", "formula1 qualifying":
 			event, err = findNext("[Formula 1]", "Qualifying")
-		case "r", "race", "f1 race", "formula 1 race":
+		case "r", "race", "f1 race", "f1race", "formula 1 race":
 			event, err = findNext("[Formula 1]", "Race")
 		case "s", "sprint", "sprint race",
-			"f1 sprint", "f1 sprint race",
+			"f1 sprint", "f1sprint", "f1 sprint race",
 			"formula1 sprint", "formula1 sprint race":
 			event, err = findNext("[Formula 1]", "Sprint Race")
 		default:
