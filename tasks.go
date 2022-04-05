@@ -243,3 +243,20 @@ func tskHTMLTitle(irccon *irc.Connection, channel string, message string) {
 		irccon.Privmsg(channel, "Title: "+titles[0])
 	}
 }
+
+// The tskWrite function runs in the background as a goroutine that reads messages from an input file and outputs them.
+func tskWrite(irccon *irc.Connection, inputFile string) {
+	for {
+		time.Sleep(1 * time.Second)
+		message, err := readIn(inputFile)
+		if err != nil {
+			log.Println("tskWrite:", err)
+			return
+		}
+		// We need to make sure the message starts with a # prefixed word and use that as a target channel.
+		splitMessage := strings.Split(message, " ")
+		if len(splitMessage) > 1 && strings.HasPrefix(splitMessage[0], "#") {
+			irccon.Privmsg(splitMessage[0], strings.Join(splitMessage[1:], " "))
+		}
+	}
+}

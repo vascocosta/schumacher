@@ -388,7 +388,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 					log.Println("cmdBet:", err)
 					return
 				}
-				scoreList[i]= Score{k, integerOdds}
+				scoreList[i] = Score{k, integerOdds}
 				i++
 			}
 			sort.Sort(scoreList)

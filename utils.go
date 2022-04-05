@@ -98,6 +98,34 @@ func writeCSV(path string, data [][]string) (err error) {
 	return
 }
 
+// Small utility function that reads messages from an input file. 
+func readIn(path string) (message string, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		err = errors.New("Error reading message from: " + path + ".")
+		return
+	}
+	message = string(data)
+	os.Truncate(path, 0)
+	return
+}
+
+// Small utility function that writes messages to an output file.
+func writeOut(path string, message string) (err error) {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	defer f.Close()
+	if err != nil {
+		err = errors.New("Error opening output file: " + path + ".")
+		return
+	}
+	_, err = f.WriteString(message)
+	if err != nil {
+		err = errors.New("Error writing message to: " + path + ".")
+		return
+	}
+	return
+}
+
 // Small utility function that fetches and returns raw data from an URL using HTTP.
 func getURL(url string) (data []byte, err error) {
 	res, err := http.Get(url)

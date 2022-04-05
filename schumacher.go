@@ -22,15 +22,18 @@ import (
 	"flag"
 	"fmt"
 	"github.com/thoj/go-ircevent"
+	"log"
 	"strings"
 )
 
-var nick = "Schumacher_"     // Nick to be used by the bot.
-var channels = "#motorsport" // Names of the channels to join.
-var adminNick = "gluon"      // Nick used by the admin of the bot.
-var poll bool                // Bool to check if a poll is on.
-var quiz bool                // Bool to check if a quiz is on.
-var activeChannel string     // The active channel.
+var nick = "Schumacher_"                          // Nick to be used by the bot.
+var channels = "#motorsport"                      // Names of the channels to join.
+var adminNick = "gluon"                           // Nick used by the admin of the bot.
+var inputFile = "/home/gluon/mnt/schumacher/in"   // File used to read messages.
+var outputFile = "/home/gluon/mnt/schumacher/out" // File used to output messages.
+var poll bool                                     // Bool to check if a poll is on.
+var quiz bool                                     // Bool to check if a quiz is on.
+var activeChannel string                          // The active channel.
 
 // The main function handles flags, defines some IRC callbacks to handle events and launches background tasks.
 func main() {
@@ -49,12 +52,17 @@ func main() {
 		return
 	}
 	irccon.AddCallback("PRIVMSG", func(event *irc.Event) {
+		// Every message, except the ones from the bot itself, are sent to an output file.
 		// We try to parse a command from every PRIVMSG that the bot sees on each channel.
 		// If we cannot parse a command, this means the message is just a regular message.
 		// So we need to check if there's an ongoing poll or quiz or an embedded HTTP URL.
 		// In case there's an ongoing poll or quiz, we send the nick/message to a channel.
 		// Otherwise, if the message contains "http", we try to obtain its HTML title tag.
 		// Finally, if we successfully parse a command, we call the matching cmd function.
+		err = writeOut(outputFile, event.Arguments[0]+" "+event.Nick+" "+event.Message()+"\n")
+		if err != nil {
+			log.Println("main:", err)
+		}
 		m := strings.Trim(event.Message(), " ")
 		command, err := parseCommand(m, event.Nick, event.Arguments[0])
 		if err != nil {
@@ -105,5 +113,6 @@ func main() {
 	// Here we launch some background tasks that run in parallel with the main goroutine.
 	go tskEvents(irccon)
 	go tskFeeds2(irccon)
+	go tskWrite(irccon, inputFile)
 	irccon.Loop()
 }
