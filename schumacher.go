@@ -97,7 +97,7 @@ func main() {
 				}
 			case "q", "quote":
 				cmdQuote(irccon, command.Channel, command.Args)
-			case "r", "register":
+			case "rr", "register":
 				cmdRegister(irccon, command.Channel, command.Nick)
 			case "wbc", "points":
 				go cmdStandings(irccon, command.Channel, command.Nick, "bet")
