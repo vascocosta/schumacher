@@ -122,7 +122,7 @@ func main() {
 	})
 	// Here we launch some background tasks that run in parallel with the main goroutine.
 	go tskEvents(irccon)
-	go tskFeeds2(irccon)
+	go tskFeeds(irccon)
 	go tskWrite(irccon, inputFile)
 	irccon.Loop()
 }
