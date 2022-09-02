@@ -21,9 +21,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/thoj/go-ircevent"
 	"log"
 	"strings"
+	"time"
+
+	irc "github.com/thoj/go-ircevent"
 )
 
 var nick = "Schumacher_"                          // Nick to be used by the bot.
@@ -106,7 +108,15 @@ func main() {
 			case "wcc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "constructor")
 			default:
-				go cmdPlugin(strings.ToLower(command.Name), irccon, command.Channel, command.Nick, command.Args)
+				finishedCh := make(chan bool)
+				go func() {
+					select {
+					case <-finishedCh:
+					case <-time.After(4 * time.Second):
+						irccon.Privmsg(command.Channel, "Command is taking long to run... Please wait.")
+					}
+				}()
+				go cmdPlugin(strings.ToLower(command.Name), irccon, command.Channel, command.Nick, command.Args, finishedCh)
 			}
 		}
 	})

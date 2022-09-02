@@ -1031,9 +1031,15 @@ func cmdRegister(irccon *irc.Connection, channel string, nick string) {
 
 // The plugin command receives a name, an IRC connection pointer, a channel, a nick and an arguments slice of strings.
 // It then tries to execute the given plugin name if a file with that name is found on the plugins folder.
-func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string, args []string) {
+func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string, args []string, finishedCh chan bool) {
 	var cmd *exec.Cmd
 	if !fileExists(pluginsFolder + name) {
+		select {
+		case finishedCh <- true:
+			// The plugin doesn't exist, but we still send true to the finished channel.
+		case <-time.After(1 * time.Second):
+			// If the main thread doesn't read the channel, then timeout after 1 second.
+		}
 		irccon.Privmsg(channel, "Unknown command or plugin.")
 		return
 	}
@@ -1047,9 +1053,21 @@ func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string,
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		select {
+		case finishedCh <- true:
+			// The plugin had a problem, but we still send true to the finished channel.
+		case <-time.After(1 * time.Second):
+			// If the main thread doesn't read the channel, then timeout after 1 second.
+		}
 		irccon.Privmsg(channel, "Error executing plugin.")
 		log.Println("cmdPlugin:", err)
 		return
+	}
+	select {
+	case finishedCh <- true:
+		// The plugin finished with success so we send true to the finished channel.
+	case <-time.After(1 * time.Second):
+		// If the main thread doesn't read the channel, then timeout after 1 second.
 	}
 	for _, line := range strings.Split(strings.TrimSuffix(string(output), "\n"), "\n") {
 		irccon.Privmsg(channel, line)
