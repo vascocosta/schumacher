@@ -1,5 +1,5 @@
 /*
- *  schumacher, the IRC bot of the #formula1 channel at Quakenet.
+ *  schumacher, a simple general purpose bot for IRC.
  *  Copyright (C) 2021-2022  Vasco Costa (gluon)
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -98,7 +98,7 @@ func writeCSV(path string, data [][]string) (err error) {
 	return
 }
 
-// Small utility function that reads messages from an input file. 
+// Small utility function that reads messages from an input file.
 func readIn(path string) (message string, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

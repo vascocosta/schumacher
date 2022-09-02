@@ -1,5 +1,5 @@
 /*
- *  schumacher, the IRC bot of the #formula1 channel at Quakenet.
+ *  schumacher, a simple general purpose bot for IRC.
  *  Copyright (C) 2021-2022  Vasco Costa (gluon)
  *
  *  This program is free software: you can redistribute it and/or modify

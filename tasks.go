@@ -1,5 +1,5 @@
 /*
- *  schumacher, the IRC bot of the #formula1 channel at Quakenet.
+ *  schumacher, a simple general purpose bot for IRC.
  *  Copyright (C) 2021-2022  Vasco Costa (gluon)
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -20,13 +20,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/gocolly/colly"
-	"github.com/mmcdole/gofeed"
-	"github.com/thoj/go-ircevent"
 	"log"
-	"mvdan.cc/xurls/v2"
 	"strings"
 	"time"
+
+	"github.com/gocolly/colly"
+	"github.com/mmcdole/gofeed"
+	irc "github.com/thoj/go-ircevent"
+	"mvdan.cc/xurls/v2"
 )
 
 // The tskFeeds function runs in the background as a goroutine polling a collection of news feeds.
