@@ -22,8 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	owm "github.com/briandowns/openweathermap"
-	"github.com/thoj/go-ircevent"
 	"log"
 	"math/rand"
 	"os/exec"
@@ -32,6 +30,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	owm "github.com/briandowns/openweathermap"
+	irc "github.com/thoj/go-ircevent"
 )
 
 // The findNext function receives a category and session and returns the chronologically next event matching that criteria.
@@ -1039,7 +1040,10 @@ func cmdPlugin(name string, irccon *irc.Connection, channel string, nick string,
 	if len(args) == 0 {
 		cmd = exec.Command(pluginsFolder+name, nick)
 	} else {
-		cmd = exec.Command(pluginsFolder+name, nick, strings.Join(args, " "))
+		var fullArgs []string
+		fullArgs = append(fullArgs, nick)
+		fullArgs = append(fullArgs, args...)
+		cmd = exec.Command(pluginsFolder+name, fullArgs...)
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
