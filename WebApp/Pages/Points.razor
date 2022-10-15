@@ -39,7 +39,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        users = await UserService.GetUsers();
+        users = await UserService.GetUsersAsync();
         users.Sort((x, y) => y.Points.CompareTo(x.Points));
     }
 }

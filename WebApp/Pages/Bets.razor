@@ -54,7 +54,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        bets = await BetService.GetBets();
+        bets = await BetService.GetBetsAsync();
         bets.Reverse();
     }
 }

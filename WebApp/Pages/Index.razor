@@ -190,13 +190,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        users = await UserService.GetUsers();
+        users = await UserService.GetUsersAsync();
         users.Sort((x, y) => y.Points.CompareTo(x.Points));
-        iEvents = await IEventService.GetIEvents();
+        iEvents = await IEventService.GetIEventsAsync();
         nextIEvent = NextIEvent();
         nextF1Qualifying = NextIEvent(category: "[formula 1]", description: "qualifying");
         nextF1Race = NextIEvent(category: "[formula 1]", description: "race");
-        bets = await BetService.GetBets();
+        bets = await BetService.GetBetsAsync();
         bets.Reverse();
     }
 }

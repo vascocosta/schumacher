@@ -40,6 +40,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        raceResults = await ErgastF1Service.RaceResults();
+        raceResults = await ErgastF1Service.RaceResultsAsync();
     }
 }

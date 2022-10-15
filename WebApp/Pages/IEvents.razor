@@ -57,6 +57,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        iEvents = await IEventService.GetIEvents();
+        iEvents = await IEventService.GetIEventsAsync();
     }
 }

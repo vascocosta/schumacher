@@ -30,7 +30,7 @@ public class ErgastF1Service
         baseUrl = "http://ergast.com/api/f1/current/last/";
     }
 
-    public async Task<Tuple<string, List<QualifyingResultRow>>> QualifyingResults()
+    public async Task<Tuple<string, List<QualifyingResultRow>>> QualifyingResultsAsync()
     {
         HttpClient client = new HttpClient();
         JsonNode? jsonNode = null;
@@ -82,7 +82,7 @@ public class ErgastF1Service
         return Tuple.Create(raceName, qualifyingResults);
     }
 
-    public async Task<Tuple<string, List<RaceResultRow>>> RaceResults()
+    public async Task<Tuple<string, List<RaceResultRow>>> RaceResultsAsync()
     {
         HttpClient client = new HttpClient();
         JsonNode? jsonNode = null;
