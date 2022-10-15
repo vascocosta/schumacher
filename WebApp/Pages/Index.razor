@@ -44,8 +44,16 @@ else
                             <td>@nextIEvent.Description</td>
                         </tr>
                         <tr>
-                            <td><b>Date</b></td>
+                            <td><b>Date UTC</b></td>
                             <td>@nextIEvent.Date</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date CEST</b></td>
+                            <td>@nextIEvent.DateCEST</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date EST</b></td>
+                            <td>@nextIEvent.DateEST</td>
                         </tr>
                         <tr>
                             <td colspan="2"><img src="@nextIEvent.Image" width="350" height="200"></td>
@@ -69,8 +77,16 @@ else
                             <td>@nextF1Qualifying.Description</td>
                         </tr>
                         <tr>
-                            <td><b>Date</b></td>
+                            <td><b>Date UTC</b></td>
                             <td>@nextF1Qualifying.Date</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date CEST</b></td>
+                            <td>@nextF1Qualifying.DateCEST</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date EST</b></td>
+                            <td>@nextF1Qualifying.DateEST</td>
                         </tr>
                         <tr>
                             <td colspan="2"><img src="@nextF1Qualifying.Image" width="350" height="200"></td>
@@ -94,8 +110,16 @@ else
                             <td>@nextF1Race.Description</td>
                         </tr>
                         <tr>
-                            <td><b>Date</b></td>
+                            <td><b>Date UTC</b></td>
                             <td>@nextF1Race.Date</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date CEST</b></td>
+                            <td>@nextF1Race.DateCEST</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date EST</b></td>
+                            <td>@nextF1Race.DateEST</td>
                         </tr>
                         <tr>
                             <td colspan="2"><img src="@nextF1Race.Image" width="350" height="200"></td>
@@ -144,10 +168,12 @@ else
     {
         foreach (var iEvent in iEvents)
         {
-            var t1 = DateTime.ParseExact(iEvent.Date, "yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture);
+            var t1 = DateTime.ParseExact(iEvent.Date, "yyyy-MM-dd HH:mm:ss UTC", CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal);
             var t2 = DateTime.Now;
             if (t1 > t2)
             {
+                iEvent.DateCEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time")).ToString(new CultureInfo("en-GB"));
+                iEvent.DateEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")).ToString(new CultureInfo("en-US"));
                 if (category.ToLower() == "any" && description.ToLower() == "any")
                 {
                     return iEvent;

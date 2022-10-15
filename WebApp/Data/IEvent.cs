@@ -6,6 +6,8 @@ public class IEvent
     public string Title { get; set;} = String.Empty;
     public string Description { get; set;} = String.Empty;
     public string Date { get; set;} = String.Empty;
+    public string DateCEST { get; set;} = String.Empty;
+    public string DateEST { get; set;} = String.Empty;
     public string Channel { get; set;} = String.Empty;
     public string Image { get; set;} = String.Empty;
     public string Mention { get; set;} = String.Empty;
