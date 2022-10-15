@@ -1,0 +1,45 @@
+@page "/f1raceresults"
+
+<PageTitle>F1 Race Results</PageTitle>
+
+@using WebApp.Data
+@inject ErgastF1Service ErgastF1Service
+
+@if (raceResults == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>Race Results: @raceResults.Item1</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Pos</th>
+                <th>Driver</th>
+                <th>Fastest Lap</th>
+                <th>Race Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in raceResults.Item2)
+            {
+                <tr>
+                    <td>@row.Position</td>
+                    <td>@row.Driver</td>
+                    <td>@row.FastestLap</td>
+                    <td>@row.Time</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Tuple<string, List<RaceResultRow>> raceResults;
+
+    protected override async Task OnInitializedAsync()
+    {
+        raceResults = await ErgastF1Service.RaceResults();
+    }
+}

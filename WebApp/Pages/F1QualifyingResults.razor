@@ -1,0 +1,47 @@
+@page "/f1qualifyingresults"
+
+<PageTitle>F1 Results</PageTitle>
+
+@using WebApp.Data
+@inject ErgastF1Service ErgastF1Service
+
+@if (qualifyingResults == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>Qualifying Results: @qualifyingResults.Item1</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Pos</th>
+                <th>Driver</th>
+                <th>Q1</th>
+                <th>Q2</th>
+                <th>Q3</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in qualifyingResults.Item2)
+            {
+                <tr>
+                    <td>@row.Position</td>
+                    <td>@row.Driver</td>
+                    <td>@row.Q1</td>
+                    <td>@row.Q2</td>
+                    <td>@row.Q3</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Tuple<string, List<QualifyingResultRow>> qualifyingResults;
+
+    protected override async Task OnInitializedAsync()
+    {
+        qualifyingResults = await ErgastF1Service.QualifyingResults();
+    }
+}

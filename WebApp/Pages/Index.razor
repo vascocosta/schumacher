@@ -1,0 +1,176 @@
+﻿@page "/"
+
+<PageTitle>Home</PageTitle>
+
+@using WebApp.Data
+@using System.Globalization
+@inject UserService UserService
+@inject IEventService IEventService
+@inject BetService BetService
+
+<h1>SCHUMACHER - THE IRC BOT OF THE #FORMULA1 CHANNEL AT QUAKENET</h1>
+<br>
+@if (users == null || iEvents == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <marquee width="100%" direction="left" bgcolor="#0080ff" behavior="scroll" style="font-size:2em; color: #ffffff;">
+        <b>WBC POINTS: </b>
+        @for(int i = 0; i != 20; i++) {
+            @(i+1 + ". " + users[i].Nick + " " + users[i].Points + " | ")
+        }
+    </marquee>
+    <br>
+    <br>
+    <h2>UPCOMING EVENTS:</h2>
+    <br>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">
+                <table class="table table-sm table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><b>Category</b></td>
+                            <td>@nextIEvent.Category</td>
+                        </tr>
+                        <tr>
+                            <td><b>Title</b></td>
+                            <td>@nextIEvent.Title</td>
+                        </tr>
+                        <tr>
+                            <td><b>Description</b></td>
+                            <td>@nextIEvent.Description</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date</b></td>
+                            <td>@nextIEvent.Date</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><img src="@nextIEvent.Image" width="350" height="200"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-sm">
+                <table class="table table-sm table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><b>Category</b></td>
+                            <td>@nextF1Qualifying.Category</td>
+                        </tr>
+                        <tr>
+                            <td><b>Title</b></td>
+                            <td>@nextF1Qualifying.Title</td>
+                        </tr>
+                        <tr>
+                            <td><b>Description</b></td>
+                            <td>@nextF1Qualifying.Description</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date</b></td>
+                            <td>@nextF1Qualifying.Date</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><img src="@nextF1Qualifying.Image" width="350" height="200"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-sm">
+                <table class="table table-sm table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><b>Category</b></td>
+                            <td>@nextF1Race.Category</td>
+                        </tr>
+                        <tr>
+                            <td><b>Title</b></td>
+                            <td>@nextF1Race.Title</td>
+                        </tr>
+                        <tr>
+                            <td><b>Description</b></td>
+                            <td>@nextF1Race.Description</td>
+                        </tr>
+                        <tr>
+                            <td><b>Date</b></td>
+                            <td>@nextF1Race.Date</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><img src="@nextF1Race.Image" width="350" height="200"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <h2>LATEST BETS:</h2>
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>Race</th>
+                <th>Nick</th>
+                <th>Driver 1</th>
+                <th>Driver 2</th>
+                <th>Drtiver 3</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for(int i = 0; i != 10; i++) {
+                <tr>
+                    <td>@bets[i].Race</td>
+                    <td>@bets[i].Nick</td>
+                    <td>@bets[i].Driver1</td>
+                    <td>@bets[i].Driver2</td>
+                    <td>@bets[i].Driver3</td>
+                    <td>@bets[i].Points</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<User> users;
+    private List<IEvent> iEvents;
+    private IEvent nextIEvent;
+    private IEvent nextF1Qualifying;
+    private IEvent nextF1Race;
+    private List<Bet> bets;
+
+    private IEvent NextIEvent(string category = "any", string description = "any")
+    {
+        foreach (var iEvent in iEvents)
+        {
+            var t1 = DateTime.ParseExact(iEvent.Date, "yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture);
+            var t2 = DateTime.Now;
+            if (t1 > t2)
+            {
+                if (category.ToLower() == "any" && description.ToLower() == "any")
+                {
+                    return iEvent;
+                }
+                else if (iEvent.Category.ToLower() == category.ToLower() &&
+                    iEvent.Description.ToLower() == description.ToLower())
+                {
+                    return iEvent;
+                }
+            }
+        }
+        return new IEvent();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await UserService.GetUsers();
+        users.Sort((x, y) => y.Points.CompareTo(x.Points));
+        iEvents = await IEventService.GetIEvents();
+        nextIEvent = NextIEvent();
+        nextF1Qualifying = NextIEvent(category: "[formula 1]", description: "qualifying");
+        nextF1Race = NextIEvent(category: "[formula 1]", description: "race");
+        bets = await BetService.GetBets();
+        bets.Reverse();
+    }
+}

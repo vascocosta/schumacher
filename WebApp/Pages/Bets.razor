@@ -1,0 +1,60 @@
+@page "/bets"
+
+<PageTitle>Bets</PageTitle>
+
+@using WebApp.Data
+@inject BetService BetService
+
+<h1>Bets</h1>
+Filters:
+<input placeholder="nick" @bind="nickFilter" @bind:event="oninput"/>
+<input placeholder="race" @bind="raceFilter" @bind:event="oninput"/>
+
+@if (bets == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>Race</th>
+                <th>Nick</th>
+                <th>Driver 1</th>
+                <th>Driver 2</th>
+                <th>Drtiver 3</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bet in bets)
+            {
+                if (bet.Nick.ToLower().Contains(nickFilter.ToLower()) &&
+                    bet.Race.ToLower().Contains(raceFilter.ToLower()))
+                {
+                    <tr>
+                        <td>@bet.Race</td>
+                        <td>@bet.Nick</td>
+                        <td>@bet.Driver1</td>
+                        <td>@bet.Driver2</td>
+                        <td>@bet.Driver3</td>
+                        <td>@bet.Points</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string nickFilter = "";
+    private string raceFilter = "";
+    private List<Bet> bets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        bets = await BetService.GetBets();
+        bets.Reverse();
+    }
+}

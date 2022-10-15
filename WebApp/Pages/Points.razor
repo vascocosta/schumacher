@@ -1,0 +1,45 @@
+@page "/points"
+
+<PageTitle>Points</PageTitle>
+
+@using WebApp.Data
+@inject UserService UserService
+
+<h1>Points</h1>
+
+@if (users == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>Pos</th>
+                <th>Nick</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for(int i = 0; i != 20; i++)
+            {
+                <tr>
+                    <td>@(i+1)</td>
+                    <td>@users[i].Nick</td>
+                    <td>@users[i].Points</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<User> users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await UserService.GetUsers();
+        users.Sort((x, y) => y.Points.CompareTo(x.Points));
+    }
+}
