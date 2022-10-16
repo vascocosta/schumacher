@@ -10,7 +10,7 @@
 
 <h1>SCHUMACHER - THE IRC BOT OF THE #FORMULA1 CHANNEL AT QUAKENET</h1>
 <br>
-@if (users == null || iEvents == null)
+@if (users == null || bets == null)
 {
     <p><em>Loading...</em></p>
 }
@@ -29,103 +29,13 @@ else
     <div class="container">
         <div class="row">
             <div class="col-sm">
-                <table class="table table-sm table-borderless">
-                    <tbody>
-                        <tr>
-                            <td><b>Category</b></td>
-                            <td>@nextIEvent.Category</td>
-                        </tr>
-                        <tr>
-                            <td><b>Title</b></td>
-                            <td>@nextIEvent.Title</td>
-                        </tr>
-                        <tr>
-                            <td><b>Description</b></td>
-                            <td>@nextIEvent.Description</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date UTC</b></td>
-                            <td>@nextIEvent.Date</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date CEST</b></td>
-                            <td>@nextIEvent.DateCEST</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date EST</b></td>
-                            <td>@nextIEvent.DateEST</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2"><img src="@nextIEvent.Image" width="350" height="200"></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <NextEvent category="any" description="any" />
             </div>
             <div class="col-sm">
-                <table class="table table-sm table-borderless">
-                    <tbody>
-                        <tr>
-                            <td><b>Category</b></td>
-                            <td>@nextF1Qualifying.Category</td>
-                        </tr>
-                        <tr>
-                            <td><b>Title</b></td>
-                            <td>@nextF1Qualifying.Title</td>
-                        </tr>
-                        <tr>
-                            <td><b>Description</b></td>
-                            <td>@nextF1Qualifying.Description</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date UTC</b></td>
-                            <td>@nextF1Qualifying.Date</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date CEST</b></td>
-                            <td>@nextF1Qualifying.DateCEST</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date EST</b></td>
-                            <td>@nextF1Qualifying.DateEST</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2"><img src="@nextF1Qualifying.Image" width="350" height="200"></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <NextEvent category="[Formula 1]" description="qualifying" />
             </div>
             <div class="col-sm">
-                <table class="table table-sm table-borderless">
-                    <tbody>
-                        <tr>
-                            <td><b>Category</b></td>
-                            <td>@nextF1Race.Category</td>
-                        </tr>
-                        <tr>
-                            <td><b>Title</b></td>
-                            <td>@nextF1Race.Title</td>
-                        </tr>
-                        <tr>
-                            <td><b>Description</b></td>
-                            <td>@nextF1Race.Description</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date UTC</b></td>
-                            <td>@nextF1Race.Date</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date CEST</b></td>
-                            <td>@nextF1Race.DateCEST</td>
-                        </tr>
-                        <tr>
-                            <td><b>Date EST</b></td>
-                            <td>@nextF1Race.DateEST</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2"><img src="@nextF1Race.Image" width="350" height="200"></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <NextEvent category="[Formula 1]" description="race" />
             </div>
         </div>
     </div>
@@ -158,44 +68,12 @@ else
 
 @code {
     private List<User> users;
-    private List<IEvent> iEvents;
-    private IEvent nextIEvent;
-    private IEvent nextF1Qualifying;
-    private IEvent nextF1Race;
     private List<Bet> bets;
-
-    private IEvent NextIEvent(string category = "any", string description = "any")
-    {
-        foreach (var iEvent in iEvents)
-        {
-            var t1 = DateTime.ParseExact(iEvent.Date, "yyyy-MM-dd HH:mm:ss UTC", CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal);
-            var t2 = DateTime.Now;
-            if (t1 > t2)
-            {
-                iEvent.DateCEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time")).ToString(new CultureInfo("en-GB"));
-                iEvent.DateEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")).ToString(new CultureInfo("en-US"));
-                if (category.ToLower() == "any" && description.ToLower() == "any")
-                {
-                    return iEvent;
-                }
-                else if (iEvent.Category.ToLower() == category.ToLower() &&
-                    iEvent.Description.ToLower() == description.ToLower())
-                {
-                    return iEvent;
-                }
-            }
-        }
-        return new IEvent();
-    }
 
     protected override async Task OnInitializedAsync()
     {
         users = await UserService.GetUsersAsync();
         users.Sort((x, y) => y.Points.CompareTo(x.Points));
-        iEvents = await IEventService.GetIEventsAsync();
-        nextIEvent = NextIEvent();
-        nextF1Qualifying = NextIEvent(category: "[formula 1]", description: "qualifying");
-        nextF1Race = NextIEvent(category: "[formula 1]", description: "race");
         bets = await BetService.GetBetsAsync();
         bets.Reverse();
     }

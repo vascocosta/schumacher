@@ -1,0 +1,62 @@
+@using WebApp.Data
+@using System.Globalization
+@inject IEventService IEventService
+
+@if (iEvents == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div>
+        <ul style="font-size: 1.5em; text-align: left; list-style-type: none;">
+            <li><img src="@nextIEvent.Image" width="300" height="150"></li>
+            <li>@nextIEvent.Title @nextIEvent.Description</li>
+            <li>@nextIEvent.Date</li>
+            <li>@nextIEvent.DateCEST</li>
+            <li>@nextIEvent.DateEST</li>
+        </ul>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Category { get; set; } = "any";
+    [Parameter]
+    public string Description { get; set; } = "any";
+    private List<IEvent> iEvents;
+    private IEvent nextIEvent;
+    private IEvent nextF1Qualifying;
+    private IEvent nextF1Race;
+
+    private IEvent NextIEvent(string category = "any", string description = "any")
+    {
+        foreach (var iEvent in iEvents)
+        {
+            var t1 = DateTime.ParseExact(iEvent.Date, "yyyy-MM-dd HH:mm:ss UTC", CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal);
+            var t2 = DateTime.Now;
+            if (t1 > t2)
+            {
+                iEvent.Date = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("UTC")).ToString(new CultureInfo("en-GB")) + " UTC";
+                iEvent.DateCEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time")).ToString(new CultureInfo("en-GB")) + " CEST";
+                iEvent.DateEST = TimeZoneInfo.ConvertTime(t1, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")).ToString(new CultureInfo("en-US")) + " EST";
+                if (category.ToLower() == "any" && description.ToLower() == "any")
+                {
+                    return iEvent;
+                }
+                else if (iEvent.Category.ToLower() == category.ToLower() &&
+                    iEvent.Description.ToLower() == description.ToLower())
+                {
+                    return iEvent;
+                }
+            }
+        }
+        return new IEvent();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        iEvents = await IEventService.GetIEventsAsync();
+        nextIEvent = NextIEvent(category: Category, description: Description);
+    }
+}
