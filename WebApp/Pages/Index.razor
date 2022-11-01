@@ -10,7 +10,7 @@
 
 <h1>SCHUMACHER - THE IRC BOT OF THE #FORMULA1 CHANNEL AT QUAKENET</h1>
 <br>
-@if (users == null || bets == null)
+@if (users == null || sortedBets == null)
 {
     <p><em>Loading...</em></p>
 }
@@ -52,14 +52,14 @@ else
             </tr>
         </thead>
         <tbody>
-            @for(int i = 0; i != 10; i++) {
+            @foreach (var bet in sortedBets.Take(12)) {
                 <tr>
-                    <td>@bets[i].Race</td>
-                    <td>@bets[i].Nick</td>
-                    <td>@bets[i].Driver1</td>
-                    <td>@bets[i].Driver2</td>
-                    <td>@bets[i].Driver3</td>
-                    <td>@bets[i].Points</td>
+                    <td>@bet.Race</td>
+                    <td>@bet.Nick</td>
+                    <td>@bet.Driver1</td>
+                    <td>@bet.Driver2</td>
+                    <td>@bet.Driver3</td>
+                    <td>@bet.Points</td>
                 </tr>
             }
         </tbody>
@@ -68,13 +68,16 @@ else
 
 @code {
     private List<User> users;
-    private List<Bet> bets;
+    private IEnumerable<Bet>? sortedBets;
 
     protected override async Task OnInitializedAsync()
     {
         users = await UserService.GetUsersAsync();
         users.Sort((x, y) => y.Points.CompareTo(x.Points));
-        bets = await BetService.GetBetsAsync();
+        var bets = await BetService.GetBetsAsync();
+        sortedBets = bets.GroupBy(x => x.Race)
+            .Select(g => g.OrderByDescending(x => x.Points))
+            .SelectMany(g => g);
         bets.Reverse();
     }
 }

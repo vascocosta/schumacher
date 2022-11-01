@@ -10,7 +10,7 @@ Filters:
 <input placeholder="nick" @bind="nickFilter" @bind:event="oninput"/>
 <input placeholder="race" @bind="raceFilter" @bind:event="oninput"/>
 
-@if (bets == null)
+@if (sortedBets == null)
 {
     <p><em>Loading...</em></p>
 }
@@ -28,7 +28,7 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var bet in bets)
+            @foreach (var bet in sortedBets)
             {
                 if (bet.Nick.ToLower().Contains(nickFilter.ToLower()) &&
                     bet.Race.ToLower().Contains(raceFilter.ToLower()))
@@ -50,11 +50,14 @@ else
 @code {
     private string nickFilter = "";
     private string raceFilter = "";
-    private List<Bet> bets;
+    private IEnumerable<Bet>? sortedBets;
 
     protected override async Task OnInitializedAsync()
     {
-        bets = await BetService.GetBetsAsync();
+        var bets = await BetService.GetBetsAsync();
         bets.Reverse();
+        sortedBets = bets.GroupBy(x => x.Race)
+            .Select(g => g.OrderByDescending(x => x.Points))
+            .SelectMany(g => g);
     }
 }
