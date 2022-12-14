@@ -28,7 +28,7 @@ import (
 	irc "github.com/thoj/go-ircevent"
 )
 
-var nick = "Schumacher_"                          // Nick to be used by the bot.
+var nick = "Schumacher"                           // Nick to be used by the bot.
 var channels = "#motorsport"                      // Names of the channels to join.
 var adminNick = "gluon"                           // Nick used by the admin of the bot.
 var inputFile = "/home/gluon/mnt/schumacher/in"   // File used to read messages.
@@ -39,7 +39,7 @@ var activeChannel string                          // The active channel.
 
 // The main function handles flags, defines some IRC callbacks to handle events and launches background tasks.
 func main() {
-	flag.StringVar(&nick, "nick", "Schumacher_", "Nick to be used by the bot.")
+	flag.StringVar(&nick, "nick", "Schumacher", "Nick to be used by the bot.")
 	flag.StringVar(&channels, "channels", "#motorsport", "Names of the channels to join.")
 	flag.Parse()
 	c := make(chan [2]string)

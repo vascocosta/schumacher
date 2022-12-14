@@ -308,12 +308,13 @@ func cmdNext(irccon *irc.Connection, channel string, nick string, search string)
 	zone, offset := t.Zone()
 	uoffset := offset / 3600
 	delta = delta / 1000000000
+	months := int(delta / 2678400)
 	days := int((delta % (86400 * 30)) / 86400)
 	hours := int((delta % 86400) / 3600)
 	minutes := int((delta % 3600) / 60)
 	irccon.Privmsg(channel, fmt.Sprintf(
-		"%s, %d %s at %02d:%02d \x02%s (UTC+%d)\x02 | %s | %d day(s), %d hour(s), %d minute(s)",
-		wday, mday, month, hour, min, zone, uoffset, event[0]+" "+event[1]+" "+event[2], days, hours, minutes))
+		"%s, %d %s at %02d:%02d \x02%s (UTC+%d)\x02 | %s | %d month(s), %d day(s), %d hour(s), %d minute(s)",
+		wday, mday, month, hour, min, zone, uoffset, event[0]+" "+event[1]+" "+event[2], months, days, hours, minutes))
 }
 
 // The bet command receives an IRC connection pointer, a channel, a nick and a bet containing 3 drivers.

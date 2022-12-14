@@ -129,11 +129,11 @@ func writeOut(path string, message string) (err error) {
 // Small utility function that fetches and returns raw data from an URL using HTTP.
 func getURL(url string) (data []byte, err error) {
 	res, err := http.Get(url)
-	defer res.Body.Close()
 	if err != nil {
 		err = errors.New("Error getting HTTP data.")
 		return
 	}
+	defer res.Body.Close()
 	data, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		err = errors.New("Error getting HTTP data.")
