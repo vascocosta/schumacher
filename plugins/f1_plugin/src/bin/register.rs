@@ -1,4 +1,5 @@
-use f1_plugin::User;
+use f1_plugin::consts;
+use f1_plugin::users::User;
 use std::env;
 
 fn show_usage() {
@@ -14,14 +15,9 @@ fn main() {
         return;
     }
 
-    let user = User::new(
-        String::from(&args[1]),
-        String::from("Europe/Berlin"),
-        0,
-        String::from(""),
-    );
+    let user = User::new(String::from(&args[1]));
 
-    let users = match User::from_path(f1_plugin::USERS_FILE) {
+    let users = match User::from_path(consts::USERS_FILE) {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
@@ -36,7 +32,7 @@ fn main() {
         return;
     }
 
-    match user.to_path(f1_plugin::USERS_FILE) {
+    match user.to_path(consts::USERS_FILE) {
         Ok(()) => println!("You were successfully registered."),
         Err(_) => println!("Error registering user."),
     }

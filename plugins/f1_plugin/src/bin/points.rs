@@ -1,4 +1,5 @@
-use f1_plugin::User;
+use f1_plugin::consts;
+use f1_plugin::users::User;
 use regex::Regex;
 use std::env;
 
@@ -14,7 +15,7 @@ fn main() {
         return;
     }
 
-    let mut users = match User::from_path(f1_plugin::USERS_FILE) {
+    let mut users = match User::from_path(consts::USERS_FILE) {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
