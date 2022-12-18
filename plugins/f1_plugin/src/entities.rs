@@ -34,7 +34,7 @@ impl User {
 impl Csv for User {
     fn from_csv(
         mut rdr: csv::Reader<File>,
-        mut entities: Vec<User>,
+        mut entities: Vec<Self>,
     ) -> Result<Vec<Self>, Box<dyn Error>> {
         for result in rdr.records() {
             let record = result?;
@@ -97,7 +97,7 @@ impl Csv for Bet {
     fn from_csv(
         mut rdr: csv::Reader<File>,
         mut entities: Vec<Self>,
-    ) -> Result<Vec<Bet>, Box<dyn Error>> {
+    ) -> Result<Vec<Self>, Box<dyn Error>> {
         for result in rdr.records() {
             let record = result?;
 
@@ -128,6 +128,100 @@ impl Csv for Bet {
                 entity.second,
                 entity.third,
                 entity.points.to_string(),
+            ])?;
+        }
+
+        wtr.flush()?;
+
+        Ok(())
+    }
+}
+
+pub struct Driver {
+    number: u32,
+    code: String,
+    odds: u32,
+}
+
+impl Csv for Driver {
+    fn from_csv(
+        mut rdr: csv::Reader<File>,
+        mut entities: Vec<Self>,
+    ) -> Result<Vec<Self>, Box<dyn Error>> {
+        for result in rdr.records() {
+            let record = result?;
+
+            let driver = Self {
+                number: match String::from(&record[0]).trim().parse() {
+                    Ok(number) => number,
+                    Err(_) => 0,
+                },
+                code: String::from(&record[1]),
+                odds: match String::from(&record[2]).trim().parse() {
+                    Ok(odds) => odds,
+                    Err(_) => 0,
+                },
+            };
+
+            entities.push(driver);
+        }
+
+        Ok(entities)
+    }
+
+    fn to_csv(mut wtr: csv::Writer<File>, entities: Vec<Self>) -> Result<(), Box<dyn Error>> {
+        for entity in entities {
+            wtr.write_record(&[
+                entity.number.to_string(),
+                entity.code,
+                entity.odds.to_string(),
+            ])?;
+        }
+
+        wtr.flush()?;
+
+        Ok(())
+    }
+}
+
+pub struct RaceResult {
+    event: String,
+    first: String,
+    second: String,
+    third: String,
+    processed: String,
+}
+
+impl Csv for RaceResult {
+    fn from_csv(
+        mut rdr: csv::Reader<File>,
+        mut entities: Vec<Self>,
+    ) -> Result<Vec<Self>, Box<dyn Error>> {
+        for result in rdr.records() {
+            let record = result?;
+
+            let race_result = Self {
+                event: String::from(&record[0]),
+                first: String::from(&record[1]),
+                second: String::from(&record[2]),
+                third: String::from(&record[3]),
+                processed: String::from(&record[4]),
+            };
+
+            entities.push(race_result);
+        }
+
+        Ok(entities)
+    }
+
+    fn to_csv(mut wtr: csv::Writer<File>, entities: Vec<Self>) -> Result<(), Box<dyn Error>> {
+        for entity in entities {
+            wtr.write_record(&[
+                entity.event,
+                entity.first,
+                entity.second,
+                entity.third,
+                entity.processed,
             ])?;
         }
 
