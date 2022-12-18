@@ -66,7 +66,7 @@ impl Csv for User {
         }
 
         wtr.flush()?;
-        
+
         Ok(())
     }
 }
@@ -78,6 +78,19 @@ pub struct Bet {
     second: String,
     third: String,
     points: u32,
+}
+
+impl Bet {
+    fn new(event: String, nick: String, first: String, second: String, third: String) -> Self {
+        Self {
+            event,
+            nick,
+            first,
+            second,
+            third,
+            points: 0,
+        }
+    }
 }
 
 impl Csv for Bet {
@@ -119,7 +132,7 @@ impl Csv for Bet {
         }
 
         wtr.flush()?;
-        
+
         Ok(())
     }
 }

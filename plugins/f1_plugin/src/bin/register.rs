@@ -1,5 +1,5 @@
 use f1_plugin::consts;
-use f1_plugin::entities::{User, EntityManager};
+use f1_plugin::entities::{EntityManager, User};
 use std::env;
 
 fn show_usage() {
