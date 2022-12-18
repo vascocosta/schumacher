@@ -1,5 +1,5 @@
 use f1_plugin::consts;
-use f1_plugin::users::User;
+use f1_plugin::entities::{User, EntityManager};
 use std::env;
 
 fn show_usage() {
@@ -17,7 +17,10 @@ fn main() {
 
     let user = User::new(String::from(&args[1]));
 
-    let users = match User::from_path(consts::USERS_FILE) {
+    let manager = EntityManager::new(String::from(consts::USERS_FILE));
+
+    //let users = match manager.from_csv::<User>() {
+    let mut users = match manager.from_csv::<User>() {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
@@ -26,13 +29,16 @@ fn main() {
         }
     };
 
-    if user.is_user(users) {
+    if user.is_user(&users) {
         println!("You are already registered.");
 
         return;
     }
 
-    match user.to_path(consts::USERS_FILE) {
+    users.push(user);
+
+    //match user.to_path(consts::USERS_FILE) {
+    match manager.to_csv::<User>(users) {
         Ok(()) => println!("You were successfully registered."),
         Err(_) => println!("Error registering user."),
     }

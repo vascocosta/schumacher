@@ -1,5 +1,5 @@
 use f1_plugin::consts;
-use f1_plugin::users::User;
+use f1_plugin::entities::{EntityManager, User};
 use regex::Regex;
 use std::env;
 
@@ -15,7 +15,10 @@ fn main() {
         return;
     }
 
-    let mut users = match User::from_path(consts::USERS_FILE) {
+    let manager = EntityManager::new(String::from(consts::USERS_FILE));
+
+    //let mut users = match User::from_path(consts::USERS_FILE) {
+    let mut users = match manager.from_csv::<User>() {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
@@ -28,7 +31,7 @@ fn main() {
 
     let mut position = 1;
 
-    for user in users {
+    for user in &users {
         if user.points > 0 {
             let re = Regex::new(r"[^A-Za-z0-9]+").unwrap();
             let nick = re.replace_all(&user.nick, "").to_uppercase();

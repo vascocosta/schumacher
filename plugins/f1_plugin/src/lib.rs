@@ -1,2 +1,3 @@
 pub mod consts;
-pub mod users;
+pub mod traits;
+pub mod entities;
