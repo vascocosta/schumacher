@@ -1,7 +1,7 @@
 use crate::traits::Csv;
 use std::error::Error;
 use std::fs::File;
-use std::fs::OpenOptions;
+//use std::fs::OpenOptions;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct User {
@@ -56,21 +56,6 @@ impl Csv for User {
         Ok(entities)
     }
 
-    /*
-    fn to_csv(mut wtr: csv::Writer<File>, entity: Self) -> Result<(), Box<dyn Error>> {
-        wtr.write_record(&[
-            entity.nick,
-            entity.time_zone,
-            entity.points.to_string(),
-            entity.notifications,
-        ])?;
-
-        wtr.flush()?;
-        
-        Ok(())
-    }
-    */
-
     fn to_csv(mut wtr: csv::Writer<File>, entities: Vec<Self>) -> Result<(), Box<dyn Error>> {
         for entity in entities {
             wtr.write_record(&[
@@ -106,29 +91,11 @@ impl EntityManager {
         T::from_csv(rdr, entities)
     }
 
-    /*
-    pub fn to_csv<T: Csv>(&self, entity: T) -> Result<(), Box<dyn Error>> {
-        let file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(&self.path)
-            .unwrap();
-
-        let wtr = csv::Writer::from_writer(file);
-
-        T::to_csv(wtr, entity)
-    }
-    */
-
     pub fn to_csv<T: Csv>(&self, entities: Vec<T>) -> Result<(), Box<dyn Error>> {
-        let file = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .unwrap();
-
-        let wtr = csv::Writer::from_writer(file);
+        let wtr = csv::WriterBuilder::new()
+            .has_headers(false)
+            .from_path(&self.path)?;
 
         T::to_csv(wtr, entities)
     }
-
 }
