@@ -1,7 +1,6 @@
 use crate::traits::Csv;
 use std::error::Error;
 use std::fs::File;
-//use std::fs::OpenOptions;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct User {
@@ -36,11 +35,11 @@ impl Csv for User {
     fn from_csv(
         mut rdr: csv::Reader<File>,
         mut entities: Vec<User>,
-    ) -> Result<Vec<User>, Box<dyn Error>> {
+    ) -> Result<Vec<Self>, Box<dyn Error>> {
         for result in rdr.records() {
             let record = result?;
 
-            let user = User {
+            let user = Self {
                 nick: String::from(&record[0]),
                 time_zone: String::from(&record[1]),
                 points: match String::from(&record[2]).trim().parse() {
@@ -63,6 +62,59 @@ impl Csv for User {
                 entity.time_zone,
                 entity.points.to_string(),
                 entity.notifications,
+            ])?;
+        }
+
+        wtr.flush()?;
+        
+        Ok(())
+    }
+}
+
+pub struct Bet {
+    event: String,
+    nick: String,
+    first: String,
+    second: String,
+    third: String,
+    points: u32,
+}
+
+impl Csv for Bet {
+    fn from_csv(
+        mut rdr: csv::Reader<File>,
+        mut entities: Vec<Self>,
+    ) -> Result<Vec<Bet>, Box<dyn Error>> {
+        for result in rdr.records() {
+            let record = result?;
+
+            let bet = Self {
+                event: String::from(&record[0]),
+                nick: String::from(&record[1]),
+                first: String::from(&record[2]),
+                second: String::from(&record[3]),
+                third: String::from(&record[4]),
+                points: match String::from(&record[5]).trim().parse() {
+                    Ok(points) => points,
+                    Err(_) => 0,
+                },
+            };
+
+            entities.push(bet);
+        }
+
+        Ok(entities)
+    }
+
+    fn to_csv(mut wtr: csv::Writer<File>, entities: Vec<Self>) -> Result<(), Box<dyn Error>> {
+        for entity in entities {
+            wtr.write_record(&[
+                entity.event,
+                entity.nick,
+                entity.first,
+                entity.second,
+                entity.third,
+                entity.points.to_string(),
             ])?;
         }
 
