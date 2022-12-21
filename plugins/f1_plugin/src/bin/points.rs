@@ -15,9 +15,9 @@ fn main() {
         return;
     }
 
-    let manager = EntityManager::new(String::from(consts::USERS_FILE));
+    let manager = EntityManager::new(consts::PATH);
 
-    let mut users = match manager.from_csv::<User>() {
+    let mut users = match manager.from_csv::<User>("users") {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");

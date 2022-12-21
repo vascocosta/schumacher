@@ -17,9 +17,9 @@ fn main() {
 
     let user = User::new(String::from(&args[1]));
 
-    let manager = EntityManager::new(String::from(consts::USERS_FILE));
+    let manager = EntityManager::new(consts::PATH);
 
-    let mut users = match manager.from_csv::<User>() {
+    let mut users = match manager.from_csv::<User>("users") {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
@@ -36,7 +36,7 @@ fn main() {
 
     users.push(user);
 
-    match manager.to_csv::<User>(users) {
+    match manager.to_csv::<User>("users", users) {
         Ok(()) => println!("You were successfully registered."),
         Err(_) => println!("Error registering user."),
     }

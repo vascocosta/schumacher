@@ -71,16 +71,18 @@ impl Csv for User {
     }
 }
 
+#[derive(Debug)]
 pub struct Bet {
-    event: String,
-    nick: String,
-    first: String,
-    second: String,
-    third: String,
-    points: u32,
+    pub event: String,
+    pub nick: String,
+    pub first: String,
+    pub second: String,
+    pub third: String,
+    pub points: u32,
 }
 
 impl Bet {
+    /*
     fn new(event: String, nick: String, first: String, second: String, third: String) -> Self {
         Self {
             event,
@@ -91,6 +93,7 @@ impl Bet {
             points: 0,
         }
     }
+    */
 }
 
 impl Csv for Bet {
@@ -184,12 +187,23 @@ impl Csv for Driver {
     }
 }
 
+#[derive(Debug)]
 pub struct RaceResult {
-    event: String,
-    first: String,
-    second: String,
-    third: String,
-    processed: String,
+    pub event: String,
+    pub first: String,
+    pub second: String,
+    pub third: String,
+    pub processed: String,
+}
+
+impl RaceResult {
+    pub fn is_processed(&self) -> bool {
+        if self.event.to_lowercase() == self.processed.to_lowercase() {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 impl Csv for RaceResult {
@@ -231,29 +245,29 @@ impl Csv for RaceResult {
     }
 }
 
-pub struct EntityManager {
-    path: String,
+pub struct EntityManager<'a> {
+    path: &'a str,
 }
 
-impl EntityManager {
-    pub fn new(path: String) -> Self {
+impl<'b> EntityManager<'b> {
+    pub fn new(path: &'b str) -> Self {
         Self { path }
     }
 
-    pub fn from_csv<T: Csv>(&self) -> Result<Vec<T>, Box<dyn Error>> {
+    pub fn from_csv<T: Csv>(&self, name: &str) -> Result<Vec<T>, Box<dyn Error>> {
         let rdr = csv::ReaderBuilder::new()
             .has_headers(false)
-            .from_path(&self.path)?;
+            .from_path(format!("{}{}.csv", self.path, name))?;
 
         let entities = Vec::new();
 
         T::from_csv(rdr, entities)
     }
 
-    pub fn to_csv<T: Csv>(&self, entities: Vec<T>) -> Result<(), Box<dyn Error>> {
+    pub fn to_csv<T: Csv>(&self, name: &str, entities: Vec<T>) -> Result<(), Box<dyn Error>> {
         let wtr = csv::WriterBuilder::new()
             .has_headers(false)
-            .from_path(&self.path)?;
+            .from_path(format!("{}{}.csv", self.path, name))?;
 
         T::to_csv(wtr, entities)
     }
