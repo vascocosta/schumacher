@@ -78,6 +78,7 @@ pub struct Bet {
     pub first: String,
     pub second: String,
     pub third: String,
+    pub fourth: String,
     pub points: u32,
 }
 
@@ -90,6 +91,7 @@ impl Bet {
             first,
             second,
             third,
+            fourth,
             points: 0,
         }
     }
@@ -110,7 +112,8 @@ impl Csv for Bet {
                 first: String::from(&record[2]),
                 second: String::from(&record[3]),
                 third: String::from(&record[4]),
-                points: match String::from(&record[5]).trim().parse() {
+                fourth: String::from(&record[5]),
+                points: match String::from(&record[6]).trim().parse() {
                     Ok(points) => points,
                     Err(_) => 0,
                 },
@@ -130,6 +133,7 @@ impl Csv for Bet {
                 entity.first,
                 entity.second,
                 entity.third,
+                entity.fourth,
                 entity.points.to_string(),
             ])?;
         }
@@ -193,6 +197,7 @@ pub struct RaceResult {
     pub first: String,
     pub second: String,
     pub third: String,
+    pub fourth: String,
     pub processed: String,
 }
 
@@ -219,7 +224,8 @@ impl Csv for RaceResult {
                 first: String::from(&record[1]),
                 second: String::from(&record[2]),
                 third: String::from(&record[3]),
-                processed: String::from(&record[4]),
+                fourth: String::from(&record[4]),
+                processed: String::from(&record[5]),
             };
 
             entities.push(race_result);
@@ -235,6 +241,7 @@ impl Csv for RaceResult {
                 entity.first,
                 entity.second,
                 entity.third,
+                entity.fourth,
                 entity.processed,
             ])?;
         }

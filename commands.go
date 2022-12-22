@@ -352,7 +352,8 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				first := strings.ToUpper(bets[i][2])
 				second := strings.ToUpper(bets[i][3])
 				third := strings.ToUpper(bets[i][4])
-				irccon.Privmsg(channel, fmt.Sprintf("Your current bet for the %s: %s %s %s", event[1], first, second, third))
+				fourth := strings.ToUpper(bets[i][5])
+                irccon.Privmsg(channel, fmt.Sprintf("Your current bet for the %s -> 1: %s | 2: %s | 3: %s | FL: %s", event[1], first, second, third, fourth))
 				return
 			}
 		}
@@ -372,34 +373,36 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	// Alternatively, if the argument provided isn't a valid command option, we let the user know.
 	if len(bet) == 1 {
 		switch strings.ToLower(bet[0]) {
-		case "multipliers", "odds":
-			var output string
-			odds, err := toStringMap(drivers, 1, 2)
-			if err != nil {
-				irccon.Privmsg(channel, "Error getting odds.")
-				log.Println("cmdBet:", err)
-				return
-			}
-			scoreList := make(ScoreList, len(drivers))
-			i := 0
-			for k, v := range odds {
-				//output += fmt.Sprintf("%s %s | ", strings.ToUpper(k), v)
-				integerOdds, err := strconv.Atoi(v)
+		/*
+			case "multipliers", "odds":
+				var output string
+				odds, err := toStringMap(drivers, 1, 2)
 				if err != nil {
 					irccon.Privmsg(channel, "Error getting odds.")
 					log.Println("cmdBet:", err)
 					return
 				}
-				scoreList[i] = Score{k, integerOdds}
-				i++
-			}
-			sort.Sort(scoreList)
-			for _, v := range scoreList {
-				output += fmt.Sprintf("%s %d | ", strings.ToUpper(v.Nick), v.Points)
-			}
-			if len(output) > 3 {
-				irccon.Privmsg(channel, output[:len(output)-3])
-			}
+				scoreList := make(ScoreList, len(drivers))
+				i := 0
+				for k, v := range odds {
+					//output += fmt.Sprintf("%s %s | ", strings.ToUpper(k), v)
+					integerOdds, err := strconv.Atoi(v)
+					if err != nil {
+						irccon.Privmsg(channel, "Error getting odds.")
+						log.Println("cmdBet:", err)
+						return
+					}
+					scoreList[i] = Score{k, integerOdds}
+					i++
+				}
+				sort.Sort(scoreList)
+				for _, v := range scoreList {
+					output += fmt.Sprintf("%s %d | ", strings.ToUpper(v.Nick), v.Points)
+				}
+				if len(output) > 3 {
+					irccon.Privmsg(channel, output[:len(output)-3])
+				}
+		*/
 		case "log":
 			var betsFound bool
 			var counter int
@@ -407,12 +410,13 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 				if strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 					betsFound = true
 					irccon.Privmsg(channel,
-						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
+                    fmt.Sprintf("Your bet for the %s -> 1: %s | 2: %s | 3: %s | FL: %s | Points: %s",
 							bets[i][0],
 							strings.ToUpper(bets[i][2]),
 							strings.ToUpper(bets[i][3]),
 							strings.ToUpper(bets[i][4]),
-							bets[i][5]))
+							strings.ToUpper(bets[i][5]),
+							bets[i][6]))
 					counter += 1
 				}
 			}
@@ -427,13 +431,15 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 						first := strings.ToUpper(bets[i][2])
 						second := strings.ToUpper(bets[i][3])
 						third := strings.ToUpper(bets[i][4])
+						fourth := strings.ToUpper(bets[i][5])
 						irccon.Privmsg(channel,
-							fmt.Sprintf("%s's current bet for the %s: %s %s %s",
+							fmt.Sprintf("%s's current bet for the %s -> 1: %s | 2: %s | 3: %s | FL: %s",
 								bet[0],
 								event[1],
 								first,
 								second,
-								third))
+								third,
+								fourth))
 						return
 					}
 				}
@@ -444,35 +450,37 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 		}
 		return
 	}
-	if len(bet) != 3 {
-		irccon.Privmsg(channel, "The bet must contain 3 drivers.")
+	if len(bet) != 4 {
+		irccon.Privmsg(channel, "The bet must contain 4 drivers.")
+		irccon.Privmsg(channel, "2023 bet format: <first> <second> <third> <fl_driver>. The FL driver must be different from the podium ones.")
 		return
 	}
-	// Finally, if we reach this point, it means the user has provided a valid bet composed of 3 drivers.
-	// We verify that all 3 driver codes are valid as per the drivers CSV file before we go any further.
-	// If the 3 codes are valid, we either place a new bet or update an already placed bet for the race.
+	// Finally, if we reach this point, it means the user has provided a valid bet composed of 4 drivers.
+	// We verify that all 4 driver codes are valid as per the drivers CSV file before we go any further.
+	// If the 4 codes are valid, we either place a new bet or update an already placed bet for the race.
 	first := strings.ToLower(bet[0])
 	second := strings.ToLower(bet[1])
 	third := strings.ToLower(bet[2])
+	fourth := strings.ToLower(bet[3])
 	for _, driver := range drivers {
 		code := strings.ToLower(driver[1])
-		if code == first || code == second || code == third {
+		if code == first || code == second || code == third || code == fourth {
 			correct++
 		}
 	}
-	if correct != 3 {
+	if correct != 4 {
 		irccon.Privmsg(channel, "Invalid drivers.")
 		return
 	}
 	for i := 0; i < len(bets); i++ {
 		if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 			update = true
-			bets[i] = []string{event[1], strings.ToLower(nick), first, second, third, "0"}
+			bets[i] = []string{event[1], strings.ToLower(nick), first, second, third, fourth, "0"}
 			break
 		}
 	}
 	if !update {
-		bets = append(bets, []string{event[1], strings.ToLower(nick), first, second, third, "0"})
+		bets = append(bets, []string{event[1], strings.ToLower(nick), first, second, third, fourth, "0"})
 	}
 	err = writeCSV(betsFile, bets)
 	if err != nil {
