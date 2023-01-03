@@ -1,5 +1,6 @@
+use csv_db::DataBase;
 use f1_plugin::consts;
-use f1_plugin::entities::{EntityManager, User};
+use f1_plugin::entities::User;
 use std::env;
 
 fn show_usage() {
@@ -15,11 +16,16 @@ fn main() {
         return;
     }
 
-    let user = User::new(String::from(&args[1]));
+    let user = User::new(
+        String::from(&args[1]).to_lowercase(),
+        String::from("Europe/Berlin"),
+        0,
+        String::from(""),
+    );
 
-    let manager = EntityManager::new(consts::PATH);
+    let db = DataBase::new(consts::PATH, None);
 
-    let mut users = match manager.from_csv::<User>("users") {
+    let users = match db.select("users", None) {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");
@@ -34,9 +40,7 @@ fn main() {
         return;
     }
 
-    users.push(user);
-
-    match manager.to_csv::<User>("users", users) {
+    match db.insert("users", user) {
         Ok(()) => println!("You were successfully registered."),
         Err(_) => println!("Error registering user."),
     }

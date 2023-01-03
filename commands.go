@@ -461,17 +461,28 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	first := strings.ToLower(bet[0])
 	second := strings.ToLower(bet[1])
 	third := strings.ToLower(bet[2])
-	fourth := strings.ToLower(bet[3])
 	for _, driver := range drivers {
 		code := strings.ToLower(driver[1])
-		if code == first || code == second || code == third || code == fourth {
+		if code == first || code == second || code == third {
 			correct++
 		}
 	}
-	if correct != 4 {
-		irccon.Privmsg(channel, "Invalid drivers.")
+	if correct != 3 {
+		irccon.Privmsg(channel, "Invalid podium drivers.")
 		return
 	}
+    correct = 0;
+    fourth := strings.ToLower(bet[3])
+    for _, driver := range drivers {
+        code := strings.ToLower(driver[1])
+        if code == fourth {
+            correct++
+        }
+    }
+    if correct != 1 {
+        irccon.Privmsg(channel, "Invalid FL driver.")
+        return
+    }
 	for i := 0; i < len(bets); i++ {
 		if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(nick) {
 			update = true

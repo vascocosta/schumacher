@@ -46,10 +46,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "csv_db"
+version = "0.1.0"
+dependencies = [
+ "csv",
+]
+
+[[package]]
 name = "f1_plugin"
 version = "0.1.0"
 dependencies = [
  "csv",
+ "csv_db",
  "regex",
 ]
 

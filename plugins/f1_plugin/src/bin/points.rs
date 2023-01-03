@@ -1,5 +1,6 @@
+use csv_db::DataBase;
 use f1_plugin::consts;
-use f1_plugin::entities::{EntityManager, User};
+use f1_plugin::entities::User;
 use regex::Regex;
 use std::env;
 
@@ -15,9 +16,9 @@ fn main() {
         return;
     }
 
-    let manager = EntityManager::new(consts::PATH);
+    let db = DataBase::new(consts::PATH, None);
 
-    let mut users = match manager.from_csv::<User>("users") {
+    let mut users: Vec<User> = match db.select("users", None) {
         Ok(users) => users,
         Err(_) => {
             println!("Error getting users.");

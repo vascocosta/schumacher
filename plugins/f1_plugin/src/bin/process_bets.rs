@@ -1,5 +1,6 @@
+use csv_db::DataBase;
 use f1_plugin::consts;
-use f1_plugin::entities::{Bet, EntityManager, RaceResult, User};
+use f1_plugin::entities::{Bet, RaceResult, User};
 use f1_plugin::utils;
 
 const CORRECT: u32 = 5;
@@ -23,9 +24,9 @@ fn main() {
         return;
     }
 
-    let manager = EntityManager::new(consts::PATH);
+    let db = DataBase::new(consts::PATH, None);
 
-    let mut race_results = match manager.from_csv::<RaceResult>("race_results") {
+    let mut race_results: Vec<RaceResult> = match db.select("race_results", None) {
         Ok(race_results) => race_results,
         Err(error) => {
             println!("{}", error);
@@ -40,7 +41,7 @@ fn main() {
         return;
     }
 
-    let mut bets = match manager.from_csv::<Bet>("bets") {
+    let mut bets: Vec<Bet> = match db.select("bets", None) {
         Ok(bets) => bets,
         Err(error) => {
             println!("{}", error);
@@ -49,7 +50,7 @@ fn main() {
         }
     };
 
-    let mut users = match manager.from_csv::<User>("users") {
+    let mut users: Vec<User> = match db.select("users", None) {
         Ok(users) => users,
         Err(error) => {
             println!("{}", error);
@@ -122,7 +123,7 @@ fn main() {
         }
     }
 
-    match manager.to_csv::<User>("users", users) {
+    match db.write("users", &users.iter().collect()) {
         Ok(()) => (),
         Err(_) => {
             println!("Error storing user points.");
@@ -131,7 +132,7 @@ fn main() {
         }
     }
 
-    match manager.to_csv::<Bet>("bets", bets) {
+    match db.write("bets", &bets.iter().collect()) {
         Ok(()) => (),
         Err(_) => {
             println!("Error storing bet points.");
@@ -142,7 +143,7 @@ fn main() {
 
     race_results[0].processed = format!("{}", race_results[0].event);
 
-    match manager.to_csv::<RaceResult>("race_results", race_results) {
+    match db.write("race_results", &race_results.iter().collect()) {
         Ok(()) => (),
         Err(_) => {
             println!("Error storing last processed bet.");
