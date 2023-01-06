@@ -25,20 +25,20 @@ fn main() {
 
     let db = DataBase::new(consts::PATH, None);
 
-    let users = match db.select("users", None) {
-        Ok(users) => users,
+    match db.select("users", None) {
+        Ok(users) => if let Some(users) = users {
+            if user.is_user(&users) {
+                println!("You are already registered.");
+
+                return;
+            }
+        }
         Err(_) => {
             println!("Error getting users.");
 
             return;
         }
     };
-
-    if user.is_user(&users) {
-        println!("You are already registered.");
-
-        return;
-    }
 
     match db.insert("users", user) {
         Ok(()) => println!("You were successfully registered."),

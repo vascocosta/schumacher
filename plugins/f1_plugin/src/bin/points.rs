@@ -19,7 +19,7 @@ fn main() {
     let db = DataBase::new(consts::PATH, None);
 
     let mut users: Vec<User> = match db.select("users", None) {
-        Ok(users) => users,
+        Ok(users) => users.unwrap_or_default(),
         Err(_) => {
             println!("Error getting users.");
 

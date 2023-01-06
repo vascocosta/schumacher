@@ -27,7 +27,7 @@ fn main() {
     let db = DataBase::new(consts::PATH, None);
 
     let mut race_results: Vec<RaceResult> = match db.select("race_results", None) {
-        Ok(race_results) => race_results,
+        Ok(race_results) => race_results.unwrap_or_default(),
         Err(error) => {
             println!("{}", error);
 
@@ -42,7 +42,7 @@ fn main() {
     }
 
     let mut bets: Vec<Bet> = match db.select("bets", None) {
-        Ok(bets) => bets,
+        Ok(bets) => bets.unwrap_or_default(),
         Err(error) => {
             println!("{}", error);
 
@@ -51,7 +51,7 @@ fn main() {
     };
 
     let mut users: Vec<User> = match db.select("users", None) {
-        Ok(users) => users,
+        Ok(users) => users.unwrap_or_default(),
         Err(error) => {
             println!("{}", error);
 
