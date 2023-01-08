@@ -30,15 +30,17 @@ fn main() {
     users.sort_by(|a, b| b.points.cmp(&a.points));
 
     let mut position = 1;
+    let mut output: String = Default::default();
 
-    for user in &users {
+    for user in users {
         if user.points > 0 {
             let re = Regex::new(r"[^A-Za-z0-9]+").unwrap();
             let nick = re.replace_all(&user.nick, "").to_uppercase();
 
-            print!("{}. {} {} | ", position, &nick[..3], user.points);
-
+            output = format!("{}{}. {} {} | ", output, position, &nick[..3], user.points);
             position += 1;
         }
     }
+
+    println!("{}", output.trim_end_matches(" | "));
 }
