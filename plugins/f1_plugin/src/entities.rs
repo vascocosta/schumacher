@@ -123,3 +123,28 @@ impl CsvRecord for RaceResult {
         ]
     }
 }
+
+#[derive(Debug)]
+pub struct Driver {
+    pub number: u32,
+    pub code: String,
+    pub odds: f32,
+}
+
+impl CsvRecord for Driver {
+    fn from_fields(fields: &Vec<String>) -> Self {
+        Self {
+            number: fields[0].parse().unwrap_or_default(),
+            code: String::from(&fields[1]),
+            odds: fields[2].parse().unwrap_or_default(),
+        }
+    }
+
+    fn to_fields(&self) -> Vec<String> {
+        vec![
+            self.number.to_string(),
+            self.code.clone(),
+            self.odds.to_string(),
+        ]
+    }
+}
