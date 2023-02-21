@@ -91,20 +91,22 @@ func main() {
 				if !poll && !quiz {
 					go cmdPoll(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
+            /*
 			case "pb", "processbets":
 				cmdProcessBets(irccon, command.Channel, command.Nick)
+            */
 			case "qz", "quiz":
 				if !quiz && !poll {
 					go cmdQuiz(irccon, command.Channel, c, strings.Join(command.Args, " "))
 				}
 			case "q", "quote":
 				cmdQuote(irccon, command.Channel, command.Args)
-				/*
-					case "rr", "register":
-						cmdRegister(irccon, command.Channel, command.Nick)
-					case "wbc", "points":
-						go cmdStandings(irccon, command.Channel, command.Nick, "bet")
-				*/
+            /*
+                case "rr", "register":
+                    cmdRegister(irccon, command.Channel, command.Nick)
+                case "wbc", "points":
+                    go cmdStandings(irccon, command.Channel, command.Nick, "bet")
+            */
 			case "wdc":
 				go cmdStandings(irccon, command.Channel, command.Nick, "driver")
 			case "wcc":

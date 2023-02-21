@@ -452,7 +452,7 @@ func cmdBet(irccon *irc.Connection, channel string, nick string, bet []string) {
 	}
 	if len(bet) != 4 {
 		irccon.Privmsg(channel, "The bet must contain 4 drivers.")
-		irccon.Privmsg(channel, "2023 bet format: <first> <second> <third> <fl_driver>. The FL driver must be different from the podium ones.")
+		irccon.Privmsg(channel, "2023 bet format: <first> <second> <third> <fl_driver>.")
 		return
 	}
 	// Finally, if we reach this point, it means the user has provided a valid bet composed of 4 drivers.
